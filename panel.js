@@ -128,24 +128,84 @@ function saveLocalHours(hours) { try { localStorage.setItem('nexocita_admin_hour
 function getLocalBusiness() { return localStorage.getItem('nexocita_admin_business') || 'NEXOCITA'; }
 function saveLocalBusiness(name) { try { localStorage.setItem('nexocita_admin_business', name); } catch {} }
 
-// ── Carga de datos (online → servidor SQLite, offline → localStorage) ────────
+// ── Carga de datos (CloudDB Firebase > Servidor SQLite > LocalStorage) ────────
+
+function updateCloudBadges() {
+  const isCloud = window.CloudDB && window.CloudDB.isReady();
+  const badge = $('#cloud-status-badge');
+  const detailBadge = $('#cloud-detail-badge');
+  if (badge) {
+    badge.textContent = isCloud ? '🟢 Nube Activa' : '🟡 Modo Local';
+    badge.title = isCloud ? 'Sincronizado en tiempo real con Firebase' : 'Sin conexión a la nube. Haz clic para conectar Firebase.';
+    badge.style.background = isCloud ? '#e6f4ea' : '#fef7e0';
+    badge.style.color = isCloud ? '#137333' : '#b06000';
+  }
+  if (detailBadge) {
+    detailBadge.textContent = isCloud ? '🟢 Conectado a Firebase' : '🟡 Sin conectar';
+    detailBadge.style.background = isCloud ? '#e6f4ea' : '#fef7e0';
+    detailBadge.style.color = isCloud ? '#137333' : '#b06000';
+  }
+}
 
 async function load() {
-  if (isOffline) {
-    const appointments = getLocalAppointmentsList();
-    data = {
-      business: getLocalBusiness(),
-      appointments,
-      clients: buildLocalClients(appointments),
-      services: getLocalServices(),
-      hours: getLocalHours()
-    };
-  } else {
+  updateCloudBadges();
+
+  // 1. Prioridad: CloudDB Firebase (sincroniza todos los dispositivos en tiempo real)
+  if (window.CloudDB && window.CloudDB.isReady()) {
     try {
-      data = await api('admin/data');
-    } catch (e) {
-      isOffline = true;
-      return load();
+      const [cloudApps, cloudSvcs, cloudSettings] = await Promise.all([
+        window.CloudDB.getAppointments(),
+        window.CloudDB.getServices(),
+        window.CloudDB.getSettings()
+      ]);
+
+      const apps = (cloudApps && cloudApps.length)
+        ? cloudApps.map(x => x.appointment).filter(Boolean)
+        : getLocalAppointmentsList();
+
+      data = {
+        business: cloudSettings?.business || getLocalBusiness(),
+        appointments: apps,
+        clients: buildLocalClients(apps),
+        services: (cloudSvcs && cloudSvcs.length) ? cloudSvcs : getLocalServices(),
+        hours: cloudSettings?.hours || getLocalHours()
+      };
+
+      // Escuchar cambios en vivo desde cualquier teléfono o PC
+      window.CloudDB.onAppointmentsChange(newRaw => {
+        if (!newRaw) return;
+        const liveApps = newRaw.map(x => x.appointment).filter(Boolean);
+        data.appointments = liveApps;
+        data.clients = buildLocalClients(liveApps);
+        renderMetrics();
+        renderCalendar();
+        renderAppointments();
+        renderClients();
+      });
+
+    } catch (err) {
+      console.warn('Error cargando desde CloudDB, usando respaldo:', err);
+    }
+  }
+
+  // 2. Si no hay CloudDB o no devolvió datos, intentar servidor API o local
+  if (!data || !data.appointments) {
+    if (isOffline) {
+      const appointments = getLocalAppointmentsList();
+      data = {
+        business: getLocalBusiness(),
+        appointments,
+        clients: buildLocalClients(appointments),
+        services: getLocalServices(),
+        hours: getLocalHours()
+      };
+    } else {
+      try {
+        data = await api('admin/data');
+      } catch (e) {
+        isOffline = true;
+        return load();
+      }
     }
   }
 
@@ -159,6 +219,7 @@ async function load() {
   renderClients();
   renderServices();
   renderSettings();
+  renderCloudTab();
 }
 
 // ── Formato de fecha ─────────────────────────────────────────────────────────
@@ -255,6 +316,14 @@ function renderAppointments() {
       actions.append(
         button('Reprogramar', () => editAppointment(a)),
         button('Marcar completada', () => action(async () => {
+          if (window.CloudDB && window.CloudDB.isReady()) {
+            await window.CloudDB.updateAppointment(a.id, { status: 'completed' });
+            const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
+            const item = raw.find(x => x.appointment && x.appointment.id === a.id);
+            if (item) item.appointment.status = 'completed';
+            localStorage.setItem('nexocita_appointments', JSON.stringify(raw));
+            await load(); toast('Cita completada en la nube.'); return;
+          }
           if (isOffline) {
             const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
             const item = raw.find(x => x.appointment && x.appointment.id === a.id);
@@ -268,6 +337,14 @@ function renderAppointments() {
         button('Cancelar', () => {
           if (confirm(`¿Cancelar la cita de ${a.name}?`)) {
             action(async () => {
+              if (window.CloudDB && window.CloudDB.isReady()) {
+                await window.CloudDB.updateAppointment(a.id, { status: 'cancelled' });
+                const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
+                const item = raw.find(x => x.appointment && x.appointment.id === a.id);
+                if (item) item.appointment.status = 'cancelled';
+                localStorage.setItem('nexocita_appointments', JSON.stringify(raw));
+                await load(); toast('Cita cancelada en la nube.'); return;
+              }
               if (isOffline) {
                 const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
                 const item = raw.find(x => x.appointment && x.appointment.id === a.id);
@@ -311,7 +388,15 @@ function editAppointment(a) {
   date.querySelector('input').min = config.today;
   date.querySelector('input').max = config.max_date;
   time.querySelector('input').step = 900;
-  openEditor('Reprogramar cita', [date, time, element('p', `${a.service_name} · ${a.duration} min.`)], values => {
+  openEditor('Reprogramar cita', [date, time, element('p', `${a.service_name} · ${a.duration} min.`)], async values => {
+    if (window.CloudDB && window.CloudDB.isReady()) {
+      await window.CloudDB.updateAppointment(a.id, { date: values.date, time: values.time });
+      const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
+      const item = raw.find(x => x.appointment && x.appointment.id === a.id);
+      if (item) { item.appointment.date = values.date; item.appointment.time = values.time; }
+      localStorage.setItem('nexocita_appointments', JSON.stringify(raw));
+      return;
+    }
     if (isOffline) {
       const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
       const item = raw.find(x => x.appointment && x.appointment.id === a.id);
@@ -360,7 +445,17 @@ function renderClients() {
         const name = field('Nombre', 'name', c.name),
           email = field('Correo (opcional)', 'email', c.email, 'email', false);
         name.querySelector('input').minLength = 2;
-        openEditor('Editar cliente', [name, email], values => {
+        openEditor('Editar cliente', [name, email], async values => {
+          if (window.CloudDB && window.CloudDB.isReady()) {
+            const apps = data.appointments.filter(a => a.phone === c.phone);
+            for (const app of apps) {
+              await window.CloudDB.updateAppointment(app.id, {
+                name: values.name || app.name,
+                email: values.email !== undefined ? values.email : app.email
+              });
+            }
+            return;
+          }
           if (isOffline) {
             const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
             raw.forEach(x => {
@@ -396,14 +491,16 @@ function renderServices() {
     const row = element('div', undefined, 'service-row'), p = element('p', s.name);
     p.append(element('span', `${s.duration} minutos · ${s.active ? 'Activo' : 'Inactivo'}`));
     row.append(p, button(s.active ? 'Desactivar' : 'Activar', () => action(async () => {
-      if (isOffline) {
-        const svcs = getLocalServices();
-        const found = svcs.find(x => x.id === s.id);
-        if (found) found.active = found.active ? 0 : 1;
-        saveLocalServices(svcs);
-        await load(); toast('Servicio actualizado.'); return;
+      const svcs = data.services;
+      const found = svcs.find(x => x.id === s.id);
+      if (found) found.active = found.active ? 0 : 1;
+      if (window.CloudDB && window.CloudDB.isReady()) {
+        await window.CloudDB.saveServices(svcs);
       }
-      await api('admin/service', { id: s.id, active: !s.active }, 'PATCH');
+      saveLocalServices(svcs);
+      if (!isOffline) {
+        try { await api('admin/service', { id: s.id, active: !s.active }, 'PATCH'); } catch {}
+      }
       await load(); toast('Servicio actualizado.');
     })));
     return row;
@@ -415,14 +512,16 @@ $('#service-form').onsubmit = e => {
   const form = e.target;
   const values = Object.fromEntries(new FormData(form));
   action(async () => {
-    if (isOffline) {
-      const svcs = getLocalServices();
-      svcs.push({ id: Date.now(), name: values.name, duration: Number(values.duration), active: 1 });
-      saveLocalServices(svcs);
-      form.reset();
-      await load(); toast('Servicio añadido.'); return;
+    const svcs = data.services || getLocalServices();
+    const newSvc = { id: Date.now(), name: values.name, duration: Number(values.duration), active: 1 };
+    svcs.push(newSvc);
+    if (window.CloudDB && window.CloudDB.isReady()) {
+      await window.CloudDB.saveServices(svcs);
     }
-    await api('admin/service', { ...values, duration: Number(values.duration) });
+    saveLocalServices(svcs);
+    if (!isOffline) {
+      try { await api('admin/service', { ...values, duration: Number(values.duration) }); } catch {}
+    }
     form.reset();
     await load(); toast('Servicio añadido.');
   });
@@ -453,22 +552,134 @@ function renderSettings() {
 $('#settings-form').onsubmit = e => {
   e.preventDefault();
   const form = new FormData(e.target);
+  const business = form.get('business');
   const hours = Array.from({ length: 7 }, (_, i) => ({
     closed: !form.has(`open-${i}`),
     open: form.get(`open-time-${i}`),
     close: form.get(`close-time-${i}`)
   }));
   action(async () => {
-    if (isOffline) {
-      saveLocalBusiness(form.get('business'));
-      saveLocalHours(hours);
-      config.business = form.get('business');
-      await load(); toast('Horario actualizado.'); return;
+    saveLocalBusiness(business);
+    saveLocalHours(hours);
+    config.business = business;
+    if (window.CloudDB && window.CloudDB.isReady()) {
+      await window.CloudDB.saveSettings({ business, hours });
     }
-    await api('admin/settings', { business: form.get('business'), hours }, 'PATCH');
-    await load(); toast('Horario actualizado.');
+    if (!isOffline) {
+      try { await api('admin/settings', { business, hours }, 'PATCH'); } catch {}
+    }
+    await load(); toast('Horario y negocio actualizados.');
   });
 };
+
+// ── Pestaña Nube y Sincronización (Firebase) ───────────────────────────────────
+
+function parseFirebaseConfigInput(text) {
+  text = text.trim();
+  // Caso 1: el usuario pegó el código JS completo: const firebaseConfig = { ... };
+  const match = text.match(/\{[\s\S]*\}/);
+  if (match) {
+    text = match[0];
+  }
+  // Convertir formato JS relajado a JSON si hace falta
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    // Evaluar objeto seguro mediante Function
+    try {
+      const fn = new Function('return ' + text);
+      const res = fn();
+      if (res && typeof res === 'object') return res;
+    } catch (e2) {}
+  }
+  throw new Error('No se pudo interpretar el formato. Pega el objeto { apiKey: "...", projectId: "..." }');
+}
+
+function renderCloudTab() {
+  const isCloud = window.CloudDB && window.CloudDB.isReady();
+  const input = $('#cloud-config-input');
+  if (input && !input.value.trim()) {
+    try {
+      const saved = localStorage.getItem('nexocita_firebase_config');
+      if (saved) {
+        input.value = JSON.stringify(JSON.parse(saved), null, 2);
+      } else if (window.NEXOCITA_FIREBASE_CONFIG && window.NEXOCITA_FIREBASE_CONFIG.apiKey) {
+        input.value = JSON.stringify(window.NEXOCITA_FIREBASE_CONFIG, null, 2);
+      }
+    } catch {}
+  }
+}
+
+const cloudForm = $('#cloud-config-form');
+if (cloudForm) {
+  cloudForm.onsubmit = async e => {
+    e.preventDefault();
+    $('#cloud-error').textContent = '';
+    const btn = $('#save-cloud-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Probando conexión…';
+
+    try {
+      const rawText = $('#cloud-config-input').value;
+      if (!rawText.trim()) throw new Error('Pega la configuración de Firebase primero.');
+      const parsed = parseFirebaseConfigInput(rawText);
+      if (!parsed.apiKey || !parsed.projectId) {
+        throw new Error('La configuración debe contener al menos apiKey y projectId.');
+      }
+
+      // Probar conexión real con Firestore
+      await window.CloudDB.testConnection(parsed);
+
+      // Guardar en este navegador/dispositivo
+      localStorage.setItem('nexocita_firebase_config', JSON.stringify(parsed));
+      window.NEXOCITA_FIREBASE_CONFIG = parsed;
+
+      // Inicializar CloudDB
+      window.CloudDB.init();
+
+      toast('🟢 ¡Conectado a Firebase con éxito!');
+      await load();
+      $('#cloud-error').textContent = '';
+    } catch (err) {
+      $('#cloud-error').textContent = 'Error: ' + (err.message || 'No se pudo conectar a Firebase.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '💾 Conectar y Probar Nube';
+    }
+  };
+}
+
+const migrateBtn = $('#migrate-cloud-btn');
+if (migrateBtn) {
+  migrateBtn.onclick = async () => {
+    if (!window.CloudDB || !window.CloudDB.isReady()) {
+      toast('Conecta Firebase primero antes de migrar.');
+      return;
+    }
+    migrateBtn.disabled = true;
+    migrateBtn.textContent = '⏳ Subiendo datos a la nube…';
+    try {
+      const localApps = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
+      const count = await window.CloudDB.migrateLocalData(
+        localApps,
+        getLocalServices(),
+        { business: getLocalBusiness(), hours: getLocalHours() }
+      );
+      toast(`🚀 ¡${count} cita(s) subidas a la nube con éxito!`);
+      await load();
+    } catch (err) {
+      $('#cloud-error').textContent = 'Error migrando: ' + err.message;
+    } finally {
+      migrateBtn.disabled = false;
+      migrateBtn.textContent = '🚀 Subir citas de esta PC a la Nube';
+    }
+  };
+}
+
+const statusBadge = $('#cloud-status-badge');
+if (statusBadge) {
+  statusBadge.onclick = () => selectView('cloud');
+}
 
 // ── Navegación de vistas ──────────────────────────────────────────────────────
 

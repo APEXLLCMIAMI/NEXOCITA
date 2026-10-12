@@ -113,21 +113,38 @@ async function slots() {
     return;
   }
   
-  if (isOfflineMode) {
-    renderSlotButtons(generateSlots(date), date);
-    return;
+  if (window.CloudDB && window.CloudDB.isReady()) {
+    $('#slots').textContent = 'Consultando disponibilidad en la nube…';
+    try {
+      const booked = await window.CloudDB.getAppointmentsByDate(date);
+      if (request !== slotRequest) return;
+      const allTimes = [
+        '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+        '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
+      ];
+      const bookedSet = new Set((booked || []).map(x => x.time));
+      const avail = allTimes.filter(t => !bookedSet.has(t));
+      renderSlotButtons(avail, date);
+      return;
+    } catch (e) {
+      console.warn('Error al consultar horarios en CloudDB:', e);
+    }
   }
-  
-  $('#slots').textContent = 'Consultando disponibilidad…';
-  try {
-    const data = await api(`availability?date=${encodeURIComponent(date)}&service=${encodeURIComponent(service)}`);
-    if (request !== slotRequest) return;
-    renderSlotButtons(data.slots || [], date);
-  } catch (e) {
-    if (request !== slotRequest) return;
-    isOfflineMode = true;
-    renderSlotButtons(generateSlots(date), date);
+
+  if (!isOfflineMode) {
+    $('#slots').textContent = 'Consultando disponibilidad…';
+    try {
+      const data = await api(`availability?date=${encodeURIComponent(date)}&service=${encodeURIComponent(service)}`);
+      if (request !== slotRequest) return;
+      renderSlotButtons(data.slots || [], date);
+      return;
+    } catch (e) {
+      if (request !== slotRequest) return;
+      isOfflineMode = true;
+    }
   }
+
+  renderSlotButtons(generateSlots(date), date);
 }
 
 $('#service').onchange = slots;
@@ -143,60 +160,61 @@ $('#booking-form').onsubmit = async e => {
   }
   $('#confirm-booking').disabled = true;
 
-  if (isOfflineMode) {
-    const id = 'NC-' + Math.floor(100000 + Math.random() * 900000);
-    const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-    const serviceName = $('#service').selectedOptions[0]?.textContent || 'Servicio';
-    const app = {
-      id,
-      service_id: values.service,
-      service_name: serviceName,
-      duration: 30,
-      date: values.date,
-      time: values.time,
-      name: values.name,
-      phone: values.phone,
-      email: values.email || '',
-      notes: values.notes || '',
-      status: 'confirmed'
-    };
-    saveStoredAppointment(app, token);
-    receipt = { appointment: app, token };
-    showSuccess(app, token);
-    return;
-  }
+  const id = 'NC-' + Math.floor(100000 + Math.random() * 900000);
+  const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+  const serviceName = $('#service').selectedOptions[0]?.textContent || 'Servicio';
+  const duration = config?.services?.find(s => String(s.id) === String(values.service))?.duration || 30;
 
-  try {
-    receipt = await api('book', values);
-    showSuccess(receipt.appointment, receipt.token);
-  } catch (error) {
-    if (error.message === 'offline') {
-      isOfflineMode = true;
-      const id = 'NC-' + Math.floor(100000 + Math.random() * 900000);
-      const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-      const serviceName = $('#service').selectedOptions[0]?.textContent || 'Servicio';
-      const app = {
-        id,
-        service_id: values.service,
-        service_name: serviceName,
-        duration: 30,
-        date: values.date,
-        time: values.time,
-        name: values.name,
-        phone: values.phone,
-        email: values.email || '',
-        notes: values.notes || '',
-        status: 'confirmed'
-      };
+  const app = {
+    id,
+    service_id: values.service,
+    service_name: serviceName,
+    duration,
+    date: values.date,
+    time: values.time,
+    name: (values.name || '').trim(),
+    phone: (values.phone || '').trim(),
+    email: (values.email || '').trim(),
+    notes: (values.notes || '').trim(),
+    status: 'confirmed',
+    created_at: new Date().toISOString()
+  };
+
+  // 1. Guardar en Firebase Cloud si está disponible (unifica todos los teléfonos y PCs)
+  if (window.CloudDB && window.CloudDB.isReady()) {
+    try {
+      await window.CloudDB.saveAppointment(app, token);
       saveStoredAppointment(app, token);
       receipt = { appointment: app, token };
       showSuccess(app, token);
-    } else {
-      $('#booking-error').textContent = error.message;
-      $('#confirm-booking').disabled = false;
-      await slots();
+      return;
+    } catch (cloudErr) {
+      console.error('Error guardando en CloudDB:', cloudErr);
     }
   }
+
+  // 2. Intentar API de servidor local si está corriendo
+  if (!isOfflineMode) {
+    try {
+      receipt = await api('book', values);
+      saveStoredAppointment(receipt.appointment, receipt.token);
+      showSuccess(receipt.appointment, receipt.token);
+      return;
+    } catch (error) {
+      if (error.message !== 'offline') {
+        $('#booking-error').textContent = error.message;
+        $('#confirm-booking').disabled = false;
+        await slots();
+        return;
+      }
+      isOfflineMode = true;
+    }
+  }
+
+  // 3. Fallback de contingencia local
+  saveStoredAppointment(app, token);
+  receipt = { appointment: app, token };
+  showSuccess(app, token);
 };
 
 function showSuccess(a, token) {
@@ -679,6 +697,33 @@ async function lookup(cancel = false) {
   const payload = Object.fromEntries(new FormData($('#lookup-form')));
   if (cancel) payload.cancel = true;
 
+  // 1. CloudDB si está activo
+  if (window.CloudDB && window.CloudDB.isReady()) {
+    try {
+      if (cancel) {
+        await window.CloudDB.updateAppointment(payload.id, { status: 'cancelled' });
+        updateStoredAppointment(payload.id, payload.token, 'cancelled');
+        const updated = await window.CloudDB.lookupAppointment(payload.id, payload.token);
+        if (updated) renderLookupCard(updated);
+        slots();
+        return;
+      }
+      const found = await window.CloudDB.lookupAppointment(payload.id, payload.token);
+      if (found) {
+        renderLookupCard(found);
+      } else {
+        $('#lookup-result').replaceChildren();
+        $('#lookup-error').textContent = 'No se encontró una cita con ese código y clave.';
+      }
+      return;
+    } catch (e) {
+      $('#lookup-result').replaceChildren();
+      $('#lookup-error').textContent = e.message || 'Error al consultar la cita.';
+      return;
+    }
+  }
+
+  // 2. Modo offline local
   if (isOfflineMode) {
     if (cancel) {
       const updated = updateStoredAppointment(payload.id, payload.token, 'cancelled');
@@ -700,6 +745,7 @@ async function lookup(cancel = false) {
     return;
   }
 
+  // 3. API backend servidor local
   try {
     const a = await api('my-appointment', payload);
     renderLookupCard(a);
@@ -750,20 +796,53 @@ function setupFallback() {
   slots();
 }
 
-api('config').then(data => {
-  config = data;
-  $('#business-name').textContent = `${data.business} · Reserva en pocos pasos.`;
-  $('#date').min = data.today;
-  $('#date').max = data.max_date;
-  $('#date').value = data.today;
-  $('#service').replaceChildren();
-  data.services.forEach(s => $('#service').append(new Option(`${s.name} · ${s.duration} min`, s.id)));
-  if (!data.services.length) {
-    setupFallback();
-  } else {
-    slots();
+async function startApp() {
+  // Primero: si CloudDB está listo, cargar configuración de la nube
+  if (window.CloudDB && window.CloudDB.isReady()) {
+    try {
+      const [cloudSvcs, cloudSettings] = await Promise.all([
+        window.CloudDB.getServices(),
+        window.CloudDB.getSettings()
+      ]);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const maxDate = new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0];
+      const biz = cloudSettings?.business || 'NEXOCITA';
+      const svcs = (cloudSvcs && cloudSvcs.length)
+        ? cloudSvcs.filter(s => s.active !== 0 && s.active !== false)
+        : DEFAULT_SERVICES;
+      config = { business: biz, today: todayStr, max_date: maxDate, services: svcs };
+      $('#business-name').textContent = `${biz} · Reserva en pocos pasos.`;
+      $('#date').min = todayStr;
+      $('#date').max = maxDate;
+      $('#date').value = todayStr;
+      $('#service').replaceChildren();
+      svcs.forEach(s => $('#service').append(new Option(`${s.name} · ${s.duration} min`, s.id)));
+      slots();
+      return;
+    } catch (e) {
+      console.warn('Error iniciando con CloudDB:', e);
+    }
   }
-}).catch(() => {
-  setupFallback();
-});
+
+  // Segundo: intentar API del servidor local
+  try {
+    const data = await api('config');
+    config = data;
+    $('#business-name').textContent = `${data.business} · Reserva en pocos pasos.`;
+    $('#date').min = data.today;
+    $('#date').max = data.max_date;
+    $('#date').value = data.today;
+    $('#service').replaceChildren();
+    data.services.forEach(s => $('#service').append(new Option(`${s.name} · ${s.duration} min`, s.id)));
+    if (!data.services.length) {
+      setupFallback();
+    } else {
+      slots();
+    }
+  } catch {
+    setupFallback();
+  }
+}
+
+startApp();
 })();
