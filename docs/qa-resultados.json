@@ -1,0 +1,32 @@
+{
+  "checks": [
+    "Admin sin sesión rechazado",
+    "Configuración inicial",
+    "Configuración duplicada rechazada",
+    "Contraseña incorrecta rechazada",
+    "Consulta de disponibilidad",
+    "Correo inválido rechazado",
+    "Concurrencia sin doble reserva",
+    "Consulta protegida",
+    "Consulta de reserva",
+    "Reprogramación",
+    "Cancelación del cliente",
+    "Horario liberado",
+    "Alta de servicio",
+    "Desactivar servicio",
+    "Editar cliente",
+    "Guardar horario",
+    "Hora inválida rechazada",
+    "Nueva reserva tras liberar",
+    "Completar cita",
+    "Archivos privados inaccesibles",
+    "HTML disponible",
+    "JSON no objeto rechazado",
+    "Logout"
+  ],
+  "passed": 23,
+  "config_ms_mean": 27.35,
+  "config_ms_max": 33.47,
+  "requests": 20,
+  "environment": "HTTP local Windows; SQLite temporal; sin carga externa"
+}
