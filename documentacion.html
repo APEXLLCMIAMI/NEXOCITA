@@ -1,182 +1,378 @@
 <!doctype html>
 <html lang="es">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Memoria Técnica y Documentación · NEXOCITA · UCN</title>
-<meta name="description" content="Documentación técnica formal del Proyecto Integrador NEXOCITA: Arquitectura de software, fichas técnicas de medios, guía de UI/UX, manual de despliegue y pruebas de calidad (QA).">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%230071e3'/%3E%3Cpath d='M11 28V12l18 16V12' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="styles.css">
-<style>
-  body { background: #fbfbfd; color: #1d1d1f; }
-  .doc-container { max-width: 1100px; margin: 40px auto; padding: 0 24px; }
-  .doc-hero { background: #fff; border: 1px solid var(--line); border-radius: 28px; padding: 48px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); margin-bottom: 35px; }
-  .doc-hero h1 { font-size: clamp(34px, 4.5vw, 48px); margin-bottom: 15px; }
-  .doc-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; border-top: 1px solid var(--line); padding-top: 25px; margin-top: 25px; }
-  .doc-meta-item small { display: block; font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700; letter-spacing: 1px; }
-  .doc-meta-item strong { font-size: 15px; color: var(--ink); }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Memoria Técnica y Documentación · NEXOCITA · UCN</title>
+  <meta name="description"
+    content="Documentación técnica formal del Proyecto Integrador NEXOCITA: Arquitectura de software, fichas técnicas de medios, guía de UI/UX, manual de despliegue y pruebas de calidad (QA).">
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%230071e3'/%3E%3Cpath d='M11 28V12l18 16V12' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      background: #fbfbfd;
+      color: #1d1d1f;
+    }
 
-  .doc-nav-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 6px; background: #ebebef; border-radius: 30px; margin-bottom: 35px; }
-  .doc-nav-tab { border: 0; background: none; padding: 12px 22px; border-radius: 24px; font-size: 14px; font-weight: 600; color: #525257; cursor: pointer; white-space: nowrap; transition: all .2s; }
-  .doc-nav-tab.active { background: #fff; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .doc-container {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
 
-  .doc-section-card { background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 40px; margin-bottom: 30px; box-shadow: 0 8px 24px rgba(0,0,0,0.02); }
-  .doc-section-card h2 { font-size: 28px; margin-bottom: 12px; border-bottom: 2px solid #f0f0f4; padding-bottom: 14px; }
-  .doc-section-card h3 { font-size: 20px; margin: 28px 0 12px; }
+    .doc-hero {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 48px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+      margin-bottom: 35px;
+    }
 
-  /* Tablas técnicas */
-  .tech-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
-  .tech-table th, .tech-table td { padding: 14px 16px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
-  .tech-table th { background: var(--soft); font-weight: 700; color: var(--ink); }
-  .tech-table tr:hover td { background: #fafafa; }
+    .doc-hero h1 {
+      font-size: clamp(34px, 4.5vw, 48px);
+      margin-bottom: 15px;
+    }
 
-  /* Diagramas de arquitectura */
-  .diagram-box { background: #0b1526; color: #f8fafc; border-radius: 20px; padding: 30px; margin: 25px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; line-height: 1.6; overflow-x: auto; }
-  .diagram-box pre { margin: 0; }
+    .doc-meta {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      border-top: 1px solid var(--line);
+      padding-top: 25px;
+      margin-top: 25px;
+    }
 
-  /* Swatches de color */
-  .color-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 20px 0; }
-  .color-swatch-card { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: #fff; }
-  .swatch-color { height: 75px; }
-  .swatch-info { padding: 12px 14px; font-size: 13px; }
-  .swatch-info strong { display: block; font-size: 14px; margin-bottom: 2px; }
-  .swatch-info code { color: var(--muted); font-size: 12px; }
+    .doc-meta-item small {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
 
-  /* Print */
-  .doc-actions-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-  @media print {
-    header, .doc-nav-tabs, .doc-actions-bar, .text-link { display: none !important; }
-    .doc-container { max-width: 100%; margin: 0; padding: 0; }
-    .doc-section-card { border: none; box-shadow: none; padding: 20px 0; page-break-inside: avoid; }
-    body { background: #fff; }
-  }
+    .doc-meta-item strong {
+      font-size: 15px;
+      color: var(--ink);
+    }
 
-  @media(max-width: 800px) {
-    .doc-meta { grid-template-columns: 1fr 1fr; }
-    .color-swatches { grid-template-columns: 1fr 1fr; }
-    .doc-hero { padding: 28px 20px; }
-    .doc-section-card { padding: 24px 18px; }
-  }
-</style>
+    .doc-nav-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 6px;
+      background: #ebebef;
+      border-radius: 30px;
+      margin-bottom: 35px;
+    }
+
+    .doc-nav-tab {
+      border: 0;
+      background: none;
+      padding: 12px 22px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #525257;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .2s;
+    }
+
+    .doc-nav-tab.active {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .doc-section-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 40px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.02);
+    }
+
+    .doc-section-card h2 {
+      font-size: 28px;
+      margin-bottom: 12px;
+      border-bottom: 2px solid #f0f0f4;
+      padding-bottom: 14px;
+    }
+
+    .doc-section-card h3 {
+      font-size: 20px;
+      margin: 28px 0 12px;
+    }
+
+    /* Tablas técnicas */
+    .tech-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+
+    .tech-table th,
+    .tech-table td {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .tech-table th {
+      background: var(--soft);
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .tech-table tr:hover td {
+      background: #fafafa;
+    }
+
+    /* Diagramas de arquitectura */
+    .diagram-box {
+      background: #0b1526;
+      color: #f8fafc;
+      border-radius: 20px;
+      padding: 30px;
+      margin: 25px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+
+    .diagram-box pre {
+      margin: 0;
+    }
+
+    /* Swatches de color */
+    .color-swatches {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .color-swatch-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .swatch-color {
+      height: 75px;
+    }
+
+    .swatch-info {
+      padding: 12px 14px;
+      font-size: 13px;
+    }
+
+    .swatch-info strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+
+    .swatch-info code {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Print */
+    .doc-actions-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    @media print {
+
+      header,
+      .doc-nav-tabs,
+      .doc-actions-bar,
+      .text-link {
+        display: none !important;
+      }
+
+      .doc-container {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      .doc-section-card {
+        border: none;
+        box-shadow: none;
+        padding: 20px 0;
+        page-break-inside: avoid;
+      }
+
+      body {
+        background: #fff;
+      }
+    }
+
+    @media(max-width: 800px) {
+      .doc-meta {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .color-swatches {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .doc-hero {
+        padding: 28px 20px;
+      }
+
+      .doc-section-card {
+        padding: 24px 18px;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<header>
-  <nav aria-label="Navegación principal">
-    <a class="brand" href="index.html#inicio">
-      <span class="brand-icon">N</span>NEXOCITA<span class="brand-dot">.</span>
-    </a>
-    <div class="nav-links">
-      <a href="index.html#inicio">Volver al Sitio</a>
-      <a href="index.html#problema">Problema</a>
-      <a href="index.html#propuesta">Propuesta</a>
-      <a href="index.html#multimedia">Multimedia</a>
-      <a href="index.html#interactividad">Quiz</a>
-      <a href="index.html#reserva">Reservar</a>
+  <header>
+    <nav aria-label="Navegación principal">
+      <a class="brand" href="index.html#inicio">
+        <span class="brand-icon">N</span>NEXOCITA<span class="brand-dot">.</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html#inicio">Volver al Sitio</a>
+        <a href="index.html#problema">Problema</a>
+        <a href="index.html#propuesta">Propuesta</a>
+        <a href="index.html#multimedia">Multimedia</a>
+        <a href="index.html#interactividad">Quiz</a>
+        <a href="index.html#reserva">Reservar</a>
+      </div>
+      <a class="nav-cta" href="panel.html">Mi negocio</a>
+    </nav>
+  </header>
+
+  <div class="doc-container">
+
+    <div class="doc-actions-bar">
+      <a href="index.html" class="text-link">← Volver a la página principal de NEXOCITA</a>
+      <button class="button" onclick="window.print()" style="padding:10px 20px;font-size:14px;">Imprimir / Guardar en
+        PDF</button>
     </div>
-    <a class="nav-cta" href="panel.html">Mi negocio</a>
-  </nav>
-</header>
 
-<div class="doc-container">
+    <!-- PORTADA INSTITUCIONAL FORMAL (Slide 7) -->
+    <div class="doc-hero">
+      <p class="eyebrow">UNIVERSIDAD CENTRAL DE NICARAGUA · FACULTAD DE CIENCIAS Y TECNOLOGÍA</p>
+      <h1>Memoria Técnica del Proyecto Integrador: NEXOCITA</h1>
+      <p style="color:var(--muted);font-size:17px;max-width:800px;">
+        Documento técnico formal de consolidación, ingeniería de software, fichas técnicas de medios multimedia, guía de
+        estilo UI/UX y protocolo de control de calidad (QA).
+      </p>
 
-  <div class="doc-actions-bar">
-    <a href="index.html" class="text-link">← Volver a la página principal de NEXOCITA</a>
-    <button class="button" onclick="window.print()" style="padding:10px 20px;font-size:14px;">Imprimir / Guardar en PDF</button>
-  </div>
-
-  <!-- PORTADA INSTITUCIONAL FORMAL (Slide 7) -->
-  <div class="doc-hero">
-    <p class="eyebrow">UNIVERSIDAD CENTRAL DE NICARAGUA · FACULTAD DE CIENCIAS Y TECNOLOGÍA</p>
-    <h1>Memoria Técnica del Proyecto Integrador: NEXOCITA</h1>
-    <p style="color:var(--muted);font-size:17px;max-width:800px;">
-      Documento técnico formal de consolidación, ingeniería de software, fichas técnicas de medios multimedia, guía de estilo UI/UX y protocolo de control de calidad (QA).
-    </p>
-
-    <div class="doc-meta">
-      <div class="doc-meta-item">
-        <small>Carrera</small>
-        <strong>Ingeniería en Sistemas</strong>
-      </div>
-      <div class="doc-meta-item">
-        <small>Asignatura</small>
-        <strong>Aplicaciones Multimedia I</strong>
-      </div>
-      <div class="doc-meta-item">
-        <small>Docente Evaluador</small>
-        <strong>Lic. David I. López Pérez</strong>
-      </div>
-      <div class="doc-meta-item">
-        <small>Autores</small>
-        <strong>Oliver Corrales & Osvaldo González</strong>
+      <div class="doc-meta">
+        <div class="doc-meta-item">
+          <small>Carrera</small>
+          <strong>Ingeniería en Sistemas</strong>
+        </div>
+        <div class="doc-meta-item">
+          <small>Asignatura</small>
+          <strong>Aplicaciones Multimedia I</strong>
+        </div>
+        <div class="doc-meta-item">
+          <small>Docente Evaluador</small>
+          <strong>Lic. David I. López Pérez</strong>
+        </div>
+        <div class="doc-meta-item">
+          <small>Autores</small>
+          <strong>Oliver Corrales & Osvaldo González</strong>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- NAVEGACIÓN POR HITOS Y SECCIONES -->
-  <div class="doc-nav-tabs" role="tablist">
-    <button class="doc-nav-tab active" onclick="scrollToSection('seccion-1')">Sección I: Alcance & Problema</button>
-    <button class="doc-nav-tab" onclick="scrollToSection('seccion-2')">Sección II: Arquitectura & UX/UI</button>
-    <button class="doc-nav-tab" onclick="scrollToSection('seccion-3')">Sección III: Fichas de Medios</button>
-    <button class="doc-nav-tab" onclick="scrollToSection('seccion-4')">Sección IV: Despliegue & QA</button>
-  </div>
+    <!-- NAVEGACIÓN POR HITOS Y SECCIONES -->
+    <div class="doc-nav-tabs" role="tablist">
+      <button class="doc-nav-tab active" onclick="scrollToSection('seccion-1')">Sección I: Alcance & Problema</button>
+      <button class="doc-nav-tab" onclick="scrollToSection('seccion-2')">Sección II: Arquitectura & UX/UI</button>
+      <button class="doc-nav-tab" onclick="scrollToSection('seccion-3')">Sección III: Fichas de Medios</button>
+      <button class="doc-nav-tab" onclick="scrollToSection('seccion-4')">Sección IV: Despliegue & QA</button>
+    </div>
 
-  <!-- SECCIÓN I: INTRODUCCIÓN Y ALCANCE (Slide 7) -->
-  <article class="doc-section-card" id="seccion-1">
-    <p class="eyebrow">SECCIÓN I · ESTRUCTURA FORMAL DEL PROYECTO</p>
-    <h2>1. Introducción, Justificación y Alcance</h2>
-    <p>
-      En los pequeños y medianos establecimientos comerciales de servicios (tales como barberías, salones de estética, consultorios médicos independientes, veterinarias y talleres mecánicos), la coordinación de citas se realiza preponderantemente mediante agendas físicas de papel, notas adhesivas o mensajes dispersos en plataformas de mensajería instantánea (WhatsApp).
-    </p>
-    <p>
-      Este esquema manual genera cuellos de botella críticos: <strong>tasa de inasistencias de hasta el 38%</strong> por ausencia de confirmación formal, pérdida de entre 12 y 16 horas mensuales en negociaciones de horario repetitivas, imposibilidad de agendar fuera del horario de atención comercial y colisiones de citas (sobreagendamiento).
-    </p>
-    
-    <h3>1.1. Objetivo General</h3>
-    <p>
-      Diseñar, desarrollar e integrar una aplicación web multimedia interactiva denominada <strong>NEXOCITA</strong>, orquestando recursos visuales, sonoros y audiovisuales bajo los principios de Design Thinking, navegación intuitiva y una arquitectura transaccional de reservas 24/7 sin colisiones.
-    </p>
+    <!-- SECCIÓN I: INTRODUCCIÓN Y ALCANCE (Slide 7) -->
+    <article class="doc-section-card" id="seccion-1">
+      <p class="eyebrow">SECCIÓN I · ESTRUCTURA FORMAL DEL PROYECTO</p>
+      <h2>1. Introducción, Justificación y Alcance</h2>
+      <p>
+        En los pequeños y medianos establecimientos comerciales de servicios (tales como barberías, salones de estética,
+        consultorios médicos independientes, veterinarias y talleres mecánicos), la coordinación de citas se realiza
+        preponderantemente mediante agendas físicas de papel, notas adhesivas o mensajes dispersos en plataformas de
+        mensajería instantánea (WhatsApp).
+      </p>
+      <p>
+        Este esquema manual genera cuellos de botella críticos: <strong>tasa de inasistencias de hasta el 38%</strong>
+        por ausencia de confirmación formal, pérdida de entre 12 y 16 horas mensuales en negociaciones de horario
+        repetitivas, imposibilidad de agendar fuera del horario de atención comercial y colisiones de citas
+        (sobreagendamiento).
+      </p>
 
-    <h3>1.2. Público Meta y Escenarios de Uso</h3>
-    <table class="tech-table">
-      <thead>
-        <tr>
-          <th>Perfil de Usuario</th>
-          <th>Necesidad Principal</th>
-          <th>Solución Entregada en NEXOCITA</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>Cliente Final</strong> (Consumidor)</td>
-          <td>Agendar citas en cualquier momento sin llamadas ni esperas.</td>
-          <td>Autoservicio 24/7, visualización instantánea de horarios libres y comprobante digital con clave de consulta/cancelación.</td>
-        </tr>
-        <tr>
-          <td><strong>Propietario / Administrador</strong></td>
-          <td>Centralizar la agenda y evitar citas empalmadas o dobles.</td>
-          <td>Panel de administración en tiempo real con calendario, métricas, gestión de servicios, clientes y horarios de atención.</td>
-        </tr>
-        <tr>
-          <td><strong>Evaluador Técnico UCN</strong></td>
-          <td>Verificar estabilidad, usabilidad y rigor multimedia.</td>
-          <td>Flujo continuo sin enlaces rotos, cero dependencias frágiles, sincronización audiovisual y reporte de QA verificado.</td>
-        </tr>
-      </tbody>
-    </table>
-  </article>
+      <h3>1.1. Objetivo General</h3>
+      <p>
+        Diseñar, desarrollar e integrar una aplicación web multimedia interactiva denominada <strong>NEXOCITA</strong>,
+        orquestando recursos visuales, sonoros y audiovisuales bajo los principios de Design Thinking, navegación
+        intuitiva y una arquitectura transaccional de reservas 24/7 sin colisiones.
+      </p>
 
-  <!-- SECCIÓN II: ARQUITECTURA DE SOFTWARE & GUÍA UI/UX (Slide 6 & 7) -->
-  <article class="doc-section-card" id="seccion-2">
-    <p class="eyebrow">SECCIÓN II · HITO 1 & 2: ARQUITECTURA Y DISEÑO</p>
-    <h2>2. Arquitectura de Software y Guía de Estilo UI/UX</h2>
+      <h3>1.2. Público Meta y Escenarios de Uso</h3>
+      <table class="tech-table">
+        <thead>
+          <tr>
+            <th>Perfil de Usuario</th>
+            <th>Necesidad Principal</th>
+            <th>Solución Entregada en NEXOCITA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Cliente Final</strong> (Consumidor)</td>
+            <td>Agendar citas en cualquier momento sin llamadas ni esperas.</td>
+            <td>Autoservicio 24/7, visualización instantánea de horarios libres y comprobante digital con clave de
+              consulta/cancelación.</td>
+          </tr>
+          <tr>
+            <td><strong>Propietario / Administrador</strong></td>
+            <td>Centralizar la agenda y evitar citas empalmadas o dobles.</td>
+            <td>Panel de administración en tiempo real con calendario, métricas, gestión de servicios, clientes y
+              horarios de atención.</td>
+          </tr>
+          <tr>
+            <td><strong>Evaluador Técnico UCN</strong></td>
+            <td>Verificar estabilidad, usabilidad y rigor multimedia.</td>
+            <td>Flujo continuo sin enlaces rotos, cero dependencias frágiles, sincronización audiovisual y reporte de QA
+              verificado.</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
 
-    <h3>2.1. Arquitectura de Software y Flujo de Datos</h3>
-    <p>
-      El sistema adopta una arquitectura desacoplada y orientada a servicios ligeros:
-    </p>
-    <div class="diagram-box">
-<pre>
+    <!-- SECCIÓN II: ARQUITECTURA DE SOFTWARE & GUÍA UI/UX (Slide 6 & 7) -->
+    <article class="doc-section-card" id="seccion-2">
+      <p class="eyebrow">SECCIÓN II · HITO 1 & 2: ARQUITECTURA Y DISEÑO</p>
+      <h2>2. Arquitectura de Software y Guía de Estilo UI/UX</h2>
+
+      <h3>2.1. Arquitectura de Software y Flujo de Datos</h3>
+      <p>
+        El sistema adopta una arquitectura desacoplada y orientada a servicios ligeros:
+      </p>
+      <div class="diagram-box">
+        <pre>
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        CLIENTE WEB (FRONTEND)                          │
 │  HTML5 Semántico + Vanilla CSS3 (Tokens de diseño) + JavaScript Moderno│
@@ -199,248 +395,268 @@
 │  Tablas: services, clients, appointments, settings, sessions           │
 └────────────────────────────────────────────────────────────────────────┘
 </pre>
-    </div>
+      </div>
 
-    <h3>2.2. Guía de UI / Paleta de Colores y Tipografía (Hito 2, Slide 6)</h3>
-    <p>
-      Se implementa una paleta sobria, moderna y de alto contraste que respeta los estándares WCAG 2.1 AA de legibilidad y accesibilidad visual:
-    </p>
+      <h3>2.2. Guía de UI / Paleta de Colores y Tipografía (Hito 2, Slide 6)</h3>
+      <p>
+        Se implementa una paleta sobria, moderna y de alto contraste que respeta los estándares WCAG 2.1 AA de
+        legibilidad y accesibilidad visual:
+      </p>
 
-    <div class="color-swatches">
-      <div class="color-swatch-card">
-        <div class="swatch-color" style="background:#0071e3;"></div>
-        <div class="swatch-info">
-          <strong>Azul Primario</strong>
-          <code>#0071e3</code>
-          <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Botones CTA, enlaces activos e indicadores de estado.</p>
+      <div class="color-swatches">
+        <div class="color-swatch-card">
+          <div class="swatch-color" style="background:#0071e3;"></div>
+          <div class="swatch-info">
+            <strong>Azul Primario</strong>
+            <code>#0071e3</code>
+            <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Botones CTA, enlaces activos e indicadores de
+              estado.</p>
+          </div>
+        </div>
+        <div class="color-swatch-card">
+          <div class="swatch-color" style="background:#1d1d1f;"></div>
+          <div class="swatch-info">
+            <strong>Tinta Principal</strong>
+            <code>#1d1d1f</code>
+            <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Tipografía para títulos h1/h2 y texto de alta
+              jerarquía.</p>
+          </div>
+        </div>
+        <div class="color-swatch-card">
+          <div class="swatch-color" style="background:#f5f5f7;"></div>
+          <div class="swatch-info">
+            <strong>Gris Suave</strong>
+            <code>#f5f5f7</code>
+            <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Fondos secundarios, tarjetas y paneles
+              interactivos.</p>
+          </div>
+        </div>
+        <div class="color-swatch-card">
+          <div class="swatch-color" style="background:#080f1b;"></div>
+          <div class="swatch-info">
+            <strong>Azul Cinemático</strong>
+            <code>#080f1b</code>
+            <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Sección multimedia de video y lightbox modal.
+            </p>
+          </div>
         </div>
       </div>
-      <div class="color-swatch-card">
-        <div class="swatch-color" style="background:#1d1d1f;"></div>
-        <div class="swatch-info">
-          <strong>Tinta Principal</strong>
-          <code>#1d1d1f</code>
-          <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Tipografía para títulos h1/h2 y texto de alta jerarquía.</p>
-        </div>
-      </div>
-      <div class="color-swatch-card">
-        <div class="swatch-color" style="background:#f5f5f7;"></div>
-        <div class="swatch-info">
-          <strong>Gris Suave</strong>
-          <code>#f5f5f7</code>
-          <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Fondos secundarios, tarjetas y paneles interactivos.</p>
-        </div>
-      </div>
-      <div class="color-swatch-card">
-        <div class="swatch-color" style="background:#080f1b;"></div>
-        <div class="swatch-info">
-          <strong>Azul Cinemático</strong>
-          <code>#080f1b</code>
-          <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Sección multimedia de video y lightbox modal.</p>
-        </div>
-      </div>
-    </div>
 
-    <h3>2.3. Jerarquía Tipográfica y Grilla de Diseño</h3>
-    <ul>
-      <li><strong>Fuente base del sistema:</strong> Pila tipográfica nativa <code>-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif</code> para renderizado ultra veloz con latencia cero.</li>
-      <li><strong>Títulos Principales:</strong> <code>clamp(34px, 4vw, 50px)</code> con interletreado condensado (<code>letter-spacing: -2px</code>).</li>
-      <li><strong>Etiquetas de navegación (Eyebrows):</strong> 12px, <code>letter-spacing: 1.8px</code>, mayúsculas para guiar la lectura y jerarquía visual.</li>
-      <li><strong>Espaciado:</strong> Sistema modular basado en múltiplos de 8px (padding: 16px, 24px, 32px, 48px).</li>
-    </ul>
-  </article>
-
-  <!-- SECCIÓN III: FICHAS TÉCNICAS DE MEDIOS MULTIMEDIA (Slide 6) -->
-  <article class="doc-section-card" id="seccion-3">
-    <p class="eyebrow">SECCIÓN III · HITO 2: ESPECIFICACIONES DE ACTIVOS</p>
-    <h2>3. Fichas Técnicas de Medios Multimedia</h2>
-    <p>
-      Todos los medios incorporados en NEXOCITA fueron optimizados para garantizar rendimiento sobresaliente, carga instantánea y compatibilidad multiplataforma sin depender de internet (offline-ready).
-    </p>
-
-    <table class="tech-table">
-      <thead>
-        <tr>
-          <th>Archivo / Recurso</th>
-          <th>Tipo / Formato</th>
-          <th>Resolución / Muestreo</th>
-          <th>Peso / Duración</th>
-          <th>Función en el Storyboard</th>
-          <th>Licencia</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><code>presentacion.webm</code></td>
-          <td>Video WebM (VP8/VP9)</td>
-          <td>1920 × 1080 (Full HD)</td>
-          <td>1.7 MB · 30 seg</td>
-          <td>Recorrido en video de la transición analógica a digital.</td>
-          <td>Académica UCN 2026</td>
-        </tr>
-        <tr>
-          <td><code>subtitulos.vtt</code></td>
-          <td>Texto WebVTT</td>
-          <td>UTF-8 estandarizado</td>
-          <td>573 bytes · 6 pistas</td>
-          <td>Subtítulos de accesibilidad auditiva para el video.</td>
-          <td>Abierta / Creative Commons</td>
-        </tr>
-        <tr>
-          <td><code>narracion.wav</code></td>
-          <td>Audio WAV (PCM)</td>
-          <td>44.1 kHz / 16-bit Mono</td>
-          <td>2.0 MB · 42 seg</td>
-          <td>Locución de presentación de la propuesta de valor.</td>
-          <td>Académica UCN 2026</td>
-        </tr>
-        <tr>
-          <td><code>visual-1.jpg</code></td>
-          <td>Imagen JPEG optimizada</td>
-          <td>1920 × 1080 px</td>
-          <td>119 KB</td>
-          <td>Hero visual: Plataforma conectada en ordenador portátil.</td>
-          <td>Licencia Libre / Unsplash</td>
-        </tr>
-        <tr>
-          <td><code>visual-2.jpg</code></td>
-          <td>Imagen JPEG optimizada</td>
-          <td>1600 × 1066 px</td>
-          <td>146 KB</td>
-          <td>Infografía del problema: notas sueltas y agenda en papel.</td>
-          <td>Licencia Libre / Unsplash</td>
-        </tr>
-        <tr>
-          <td><code>visual-3.jpg</code></td>
-          <td>Imagen JPEG optimizada</td>
-          <td>1920 × 1080 px</td>
-          <td>154 KB</td>
-          <td>Información centralizada: monitor con métricas y agenda.</td>
-          <td>Licencia Libre / Unsplash</td>
-        </tr>
-        <tr>
-          <td><code>visual-4.jpg</code></td>
-          <td>Imagen JPEG optimizada</td>
-          <td>1200 × 1600 px</td>
-          <td>92 KB</td>
-          <td>Experiencia móvil: agendamiento desde dispositivo móvil.</td>
-          <td>Licencia Libre / Unsplash</td>
-        </tr>
-        <tr>
-          <td><code>visual-5.jpg</code></td>
-          <td>Imagen JPEG optimizada</td>
-          <td>1920 × 1080 px</td>
-          <td>138 KB</td>
-          <td>Panel de escritorio y póster de visualización del video.</td>
-          <td>Licencia Libre / Unsplash</td>
-        </tr>
-        <tr>
-          <td><code>visual-6.jpg</code></td>
-          <td>Imagen JPEG optimizada</td>
-          <td>1920 × 1080 px</td>
-          <td>214 KB</td>
-          <td>Cultura del servicio: transformación antes/después de barbería.</td>
-          <td>Licencia Libre / Unsplash</td>
-        </tr>
-      </tbody>
-    </table>
-  </article>
-
-  <!-- SECCIÓN IV: MANUAL DE DESPLIEGUE, QA Y GUION DE DEFENSA (Slide 5, 8 & 9) -->
-  <article class="doc-section-card" id="seccion-4">
-    <p class="eyebrow">SECCIÓN IV · HITO 3 & 4: PRUEBAS Y DEFENSA</p>
-    <h2>4. Manual de Despliegue, Protocolo QA y Guion de Defensa</h2>
-
-    <h3>4.1. Manual de Despliegue e Instalación Local (Paso a Paso)</h3>
-    <ol style="line-height:1.75;padding-left:20px;">
-      <li>
-        <strong>Requisitos previos:</strong> Disponer de Python 3.8+ o superior instalado en la computadora. No se requiere Node.js, dependencias externas ni compiladores.
-      </li>
-      <li>
-        <strong>Inicio rápido mediante script en Windows:</strong>
-        <p>Hacer doble clic en el archivo <code>iniciar.cmd</code> ubicado en la raíz del proyecto. Este archivo detecta el entorno Python automáticamente y levanta el servidor.</p>
-      </li>
-      <li>
-        <strong>Inicio manual mediante terminal:</strong>
-        <pre class="diagram-box">python server.py</pre>
-        <p>El servidor confirmará en la consola: <code>NEXOCITA listo en http://127.0.0.1:8766</code>.</p>
-      </li>
-      <li>
-        <strong>Acceso del Cliente:</strong> Abrir el navegador en <code>http://127.0.0.1:8766/index.html</code>.
-      </li>
-      <li>
-        <strong>Acceso Administrativo:</strong> Abrir <code>http://127.0.0.1:8766/panel.html</code>.
-      </li>
-    </ol>
-
-    <h3>4.2. Resultados del Checklist de Calidad Multimedia (QA - Slide 5)</h3>
-    <table class="tech-table">
-      <thead>
-        <tr>
-          <th>Criterio de QA</th>
-          <th>Estado</th>
-          <th>Verificación Técnica</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>1. Rendimiento</strong></td>
-          <td><span class="infographic-badge-good">100% ÓPTIMO</span></td>
-          <td>23 pruebas de estrés superadas; tiempo medio de respuesta en API de 27.35 ms; todos los activos multimedia comprimidos.</td>
-        </tr>
-        <tr>
-          <td><strong>2. Responsividad</strong></td>
-          <td><span class="infographic-badge-good">ADAPTABLE</span></td>
-          <td>Diseño fluidamente probado en resoluciones móviles (360px–480px), tabletas (768px–1024px) y pantallas de escritorio.</td>
-        </tr>
-        <tr>
-          <td><strong>3. Usabilidad</strong></td>
-          <td><span class="infographic-badge-good">SIN ERRORES</span></td>
-          <td>Cero errores en consola JavaScript. Transición sin interrupciones entre el Storyboard, Quiz y agendamiento.</td>
-        </tr>
-        <tr>
-          <td><strong>4. Accesibilidad</strong></td>
-          <td><span class="infographic-badge-good">WCAG 2.1 AA</span></td>
-          <td>Roles ARIA en tabs, lightbox y cuestionarios; navegación completa por teclado (Tab, flechas, Esc); etiquetas ALT en todas las imágenes.</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3>4.3. Guion de Recorrido para la Defensa Técnica (15 Minutos - Slide 9)</h3>
-    <div style="background:var(--soft);border-radius:18px;padding:24px;border-left:4px solid var(--blue);">
-      <h4 style="margin-top:0;">Cronograma de Exposición (Oliver Corrales & Osvaldo González)</h4>
+      <h3>2.3. Jerarquía Tipográfica y Grilla de Diseño</h3>
       <ul>
-        <li><strong>Minuto 0 a 3 (Pitch & Problema):</strong> Presentación del cliente, problemática de la gestión manual mediante la infografía interactiva con datos reales y fundamentación de Design Thinking.</li>
-        <li><strong>Minuto 3 a 10 (Demostración Funcional en Vivo):</strong>
-          1) Recorrido por el Storyboard.
-          2) Ejecución del Quiz interactivo de evaluación con retroalimentación instantánea.
-          3) Demostración del video con subtítulos y audio sincronizado.
-          4) Realización de una reserva en vivo, obtención del comprobante y consulta/cancelación con clave privada.
-          5) Apertura del panel administrativo para mostrar cómo la cita se refleja en tiempo real en SQLite.
+        <li><strong>Fuente base del sistema:</strong> Pila tipográfica nativa
+          <code>-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif</code> para renderizado ultra veloz
+          con latencia cero.</li>
+        <li><strong>Títulos Principales:</strong> <code>clamp(34px, 4vw, 50px)</code> con interletreado condensado
+          (<code>letter-spacing: -2px</code>).</li>
+        <li><strong>Etiquetas de navegación (Eyebrows):</strong> 12px, <code>letter-spacing: 1.8px</code>, mayúsculas
+          para guiar la lectura y jerarquía visual.</li>
+        <li><strong>Espaciado:</strong> Sistema modular basado en múltiplos de 8px (padding: 16px, 24px, 32px, 48px).
         </li>
-        <li><strong>Minuto 10 a 15 (Defensa Técnica y Preguntas):</strong> Sustentación de la arquitectura transaccional, justificación de la paleta de colores y componentes UX/UI ante el jurado evaluador.</li>
       </ul>
-    </div>
-  </article>
+    </article>
 
-</div>
+    <!-- SECCIÓN III: FICHAS TÉCNICAS DE MEDIOS MULTIMEDIA (Slide 6) -->
+    <article class="doc-section-card" id="seccion-3">
+      <p class="eyebrow">SECCIÓN III · HITO 2: ESPECIFICACIONES DE ACTIVOS</p>
+      <h2>3. Fichas Técnicas de Medios Multimedia</h2>
+      <p>
+        Todos los medios incorporados en NEXOCITA fueron optimizados para garantizar rendimiento sobresaliente, carga
+        instantánea y compatibilidad multiplataforma sin depender de internet (offline-ready).
+      </p>
 
-<footer>
-  <a class="brand" href="index.html">NEXOCITA<span class="brand-dot">.</span></a>
-  <p>Memoria Técnica del Proyecto Integrador · Universidad Central de Nicaragua (UCN) · 2026</p>
-  <a href="index.html#inicio">Volver al Sitio Web Principal ↑</a>
-</footer>
+      <table class="tech-table">
+        <thead>
+          <tr>
+            <th>Archivo / Recurso</th>
+            <th>Tipo / Formato</th>
+            <th>Resolución / Muestreo</th>
+            <th>Peso / Duración</th>
+            <th>Función en el Storyboard</th>
+            <th>Licencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>presentacion.webm</code></td>
+            <td>Video WebM (VP8/VP9)</td>
+            <td>1920 × 1080 (Full HD)</td>
+            <td>1.7 MB · 30 seg</td>
+            <td>Recorrido en video de la transición analógica a digital.</td>
+            <td>Académica UCN 2026</td>
+          </tr>
+          <tr>
+            <td><code>subtitulos.vtt</code></td>
+            <td>Texto WebVTT</td>
+            <td>UTF-8 estandarizado</td>
+            <td>573 bytes · 6 pistas</td>
+            <td>Subtítulos de accesibilidad auditiva para el video.</td>
+            <td>Abierta / Creative Commons</td>
+          </tr>
+          <tr>
+            <td><code>narracion.wav</code></td>
+            <td>Audio WAV (PCM)</td>
+            <td>44.1 kHz / 16-bit Mono</td>
+            <td>2.0 MB · 42 seg</td>
+            <td>Locución de presentación de la propuesta de valor.</td>
+            <td>Académica UCN 2026</td>
+          </tr>
+          <tr>
+            <td><code>visual-1.jpg</code></td>
+            <td>Imagen JPEG optimizada</td>
+            <td>1920 × 1080 px</td>
+            <td>119 KB</td>
+            <td>Hero visual: Plataforma conectada en ordenador portátil.</td>
+            <td>Licencia Libre / Unsplash</td>
+          </tr>
+          <tr>
+            <td><code>visual-2.jpg</code></td>
+            <td>Imagen JPEG optimizada</td>
+            <td>1600 × 1066 px</td>
+            <td>146 KB</td>
+            <td>Infografía del problema: notas sueltas y agenda en papel.</td>
+            <td>Licencia Libre / Unsplash</td>
+          </tr>
+          <tr>
+            <td><code>visual-3.jpg</code></td>
+            <td>Imagen JPEG optimizada</td>
+            <td>1920 × 1080 px</td>
+            <td>154 KB</td>
+            <td>Información centralizada: monitor con métricas y agenda.</td>
+            <td>Licencia Libre / Unsplash</td>
+          </tr>
+          <tr>
+            <td><code>visual-4.jpg</code></td>
+            <td>Imagen JPEG optimizada</td>
+            <td>1200 × 1600 px</td>
+            <td>92 KB</td>
+            <td>Experiencia móvil: agendamiento desde dispositivo móvil.</td>
+            <td>Licencia Libre / Unsplash</td>
+          </tr>
+          <tr>
+            <td><code>visual-5.jpg</code></td>
+            <td>Imagen JPEG optimizada</td>
+            <td>1920 × 1080 px</td>
+            <td>138 KB</td>
+            <td>Panel de escritorio y póster de visualización del video.</td>
+            <td>Licencia Libre / Unsplash</td>
+          </tr>
+          <tr>
+            <td><code>visual-6.jpg</code></td>
+            <td>Imagen JPEG optimizada</td>
+            <td>1920 × 1080 px</td>
+            <td>214 KB</td>
+            <td>Cultura del servicio: transformación antes/después de barbería.</td>
+            <td>Licencia Libre / Unsplash</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
 
-<script>
-function scrollToSection(id) {
-  const el = document.getElementById(id);
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    document.querySelectorAll('.doc-nav-tab').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
-  }
-}
-</script>
+    <!-- SECCIÓN IV: MANUAL DE DESPLIEGUE, QA Y GUION DE DEFENSA (Slide 5, 8 & 9) -->
+    <article class="doc-section-card" id="seccion-4">
+      <p class="eyebrow">SECCIÓN IV · HITO 3 & 4: PRUEBAS Y DEFENSA</p>
+      <h2>4. Manual de Despliegue, Protocolo QA y Guion de Defensa</h2>
+
+      <h3>4.1. Manual de Despliegue e Instalación Local (Paso a Paso)</h3>
+      <ol style="line-height:1.75;padding-left:20px;">
+        <li>
+          <strong>Requisitos previos:</strong> Disponer de Python 3.8+ o superior instalado en la computadora. No se
+          requiere Node.js, dependencias externas ni compiladores.
+        </li>
+        <li>
+          <strong>Inicio rápido mediante script en Windows:</strong>
+          <p>Hacer doble clic en el archivo <code>iniciar.cmd</code> ubicado en la raíz del proyecto. Este archivo
+            detecta el entorno Python automáticamente y levanta el servidor.</p>
+        </li>
+        <li>
+          <strong>Inicio manual mediante terminal:</strong>
+          <pre class="diagram-box">python server.py</pre>
+          <p>El servidor confirmará en la consola: <code>NEXOCITA listo en http://127.0.0.1:8766</code>.</p>
+        </li>
+        <li>
+          <strong>Acceso del Cliente:</strong> Abrir el navegador en <code>http://127.0.0.1:8766/index.html</code>.
+        </li>
+        <li>
+          <strong>Acceso Administrativo:</strong> Abrir <code>http://127.0.0.1:8766/panel.html</code>.
+        </li>
+      </ol>
+
+      <h3>4.2. Resultados del Checklist de Calidad Multimedia (QA - Slide 5)</h3>
+      <table class="tech-table">
+        <thead>
+          <tr>
+            <th>Criterio de QA</th>
+            <th>Estado</th>
+            <th>Verificación Técnica</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Rendimiento</strong></td>
+            <td><span class="infographic-badge-good">100% ÓPTIMO</span></td>
+            <td>23 pruebas de estrés superadas; tiempo medio de respuesta en API de 27.35 ms; todos los activos
+              multimedia comprimidos.</td>
+          </tr>
+          <tr>
+            <td><strong>2. Responsividad</strong></td>
+            <td><span class="infographic-badge-good">ADAPTABLE</span></td>
+            <td>Diseño fluidamente probado en resoluciones móviles (360px–480px), tabletas (768px–1024px) y pantallas de
+              escritorio.</td>
+          </tr>
+          <tr>
+            <td><strong>3. Usabilidad</strong></td>
+            <td><span class="infographic-badge-good">SIN ERRORES</span></td>
+            <td>Cero errores en consola JavaScript. Transición sin interrupciones entre el Storyboard, Quiz y
+              agendamiento.</td>
+          </tr>
+          <tr>
+            <td><strong>4. Accesibilidad</strong></td>
+            <td><span class="infographic-badge-good">WCAG 2.1 AA</span></td>
+            <td>Roles ARIA en tabs, lightbox y cuestionarios; navegación completa por teclado (Tab, flechas, Esc);
+              etiquetas ALT en todas las imágenes.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>4.3. Guion de Recorrido para la Defensa Técnica (15 Minutos - Slide 9)</h3>
+      <div style="background:var(--soft);border-radius:18px;padding:24px;border-left:4px solid var(--blue);">
+        <h4 style="margin-top:0;">Cronograma de Exposición (Oliver Corrales & Osvaldo González)</h4>
+        <ul>
+          <li><strong>Minuto 0 a 3 (Pitch & Problema):</strong> Presentación del cliente, problemática de la gestión
+            manual mediante la infografía interactiva con datos reales y fundamentación de Design Thinking.</li>
+          <li><strong>Minuto 3 a 10 (Demostración Funcional en Vivo):</strong>
+            1) Recorrido por el Storyboard.
+            2) Ejecución del Quiz interactivo de evaluación con retroalimentación instantánea.
+            3) Demostración del video con subtítulos y audio sincronizado.
+            4) Realización de una reserva en vivo, obtención del comprobante y consulta/cancelación con clave privada.
+            5) Apertura del panel administrativo para mostrar cómo la cita se refleja en tiempo real en SQLite.
+          </li>
+          <li><strong>Minuto 10 a 15 (Defensa Técnica y Preguntas):</strong> Sustentación de la arquitectura
+            transaccional, justificación de la paleta de colores y componentes UX/UI ante el jurado evaluador.</li>
+        </ul>
+      </div>
+    </article>
+
+  </div>
+
+  <footer>
+    <a class="brand" href="index.html">NEXOCITA<span class="brand-dot">.</span></a>
+    <p>Memoria Técnica del Proyecto Integrador · Universidad Central de Nicaragua (UCN) · 2026</p>
+    <a href="index.html#inicio">Volver al Sitio Web Principal ↑</a>
+  </footer>
+
+  <script>
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.querySelectorAll('.doc-nav-tab').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+      }
+    }
+  </script>
 
 </body>
+
 </html>
