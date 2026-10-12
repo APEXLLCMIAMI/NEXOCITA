@@ -22,7 +22,7 @@ const format = date => {
 };
 
 async function api(path, body) {
-  const r = await fetch('/api/' + path, {
+  const r = await fetch((typeof API_BASE !== 'undefined' ? API_BASE : '') + '/api/' + path, {
     method: body ? 'POST' : 'GET',
     headers: body ? { 'Content-Type': 'application/json' } : {},
     body: body ? JSON.stringify(body) : undefined

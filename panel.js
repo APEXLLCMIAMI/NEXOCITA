@@ -40,7 +40,7 @@ function button(text, action, extra = '') {
 async function api(path, body, method = 'POST') {
   let r, d;
   try {
-    r = await fetch('/api/' + path, {
+    r = await fetch((typeof API_BASE !== 'undefined' ? API_BASE : '') + '/api/' + path, {
       method: body ? method : 'GET',
       headers: body ? { 'Content-Type': 'application/json' } : {},
       body: body ? JSON.stringify(body) : undefined
