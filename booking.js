@@ -202,14 +202,16 @@ $('#booking-form').onsubmit = async e => {
 function showSuccess(a, token) {
   $('#booking-form').hidden = true;
   $('#booking-success').hidden = false;
-  $('#receipt-details').textContent = `${a.service_name} · ${format(a.date)} · ${a.time} (hora de Nicaragua) · ${a.name}`;
-  $('#receipt-codes').replaceChildren();
-  [['Código de reserva', a.id], ['Clave de consulta', token]].forEach(([label, value]) => {
-    const dt = document.createElement('dt'), dd = document.createElement('dd');
-    dt.textContent = label;
-    dd.textContent = value;
-    $('#receipt-codes').append(dt, dd);
-  });
+  // Populate new receipt card fields
+  const parts = (a.service_name || '').split(' · ');
+  const svcName = parts[0] || a.service_name;
+  const dur = a.duration || parts[1]?.replace(' min','') || '—';
+  $('#rr-service-val').textContent = svcName;
+  $('#rr-date-val').textContent = `${format(a.date)} · ${a.time} (hora de Nicaragua)`;
+  $('#rr-name-val').textContent = a.name;
+  $('#rr-duration-val').textContent = `${dur} minutos`;
+  $('#rr-code').textContent = a.id;
+  $('#rr-token').textContent = token;
   $('#booking-success').scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
@@ -223,13 +225,68 @@ $('#new-booking').onclick = () => {
 
 $('#download-receipt').onclick = () => {
   const a = receipt.appointment;
-  const body = `NEXOCITA · ${config.business || 'Tu tiempo, en orden'}\n\n${a.service_name}\n${format(a.date)} a las ${a.time} (hora de Nicaragua)\nNombre: ${a.name}\nTeléfono: ${a.phone}\n\nCódigo de reserva: ${a.id}\nClave de consulta: ${receipt.token}\n\nGuarda esta clave de forma privada. Consulta o cancela desde la sección «¿Ya tienes una cita?» del sitio.\n${location.origin}\n`;
-  const url = URL.createObjectURL(new Blob([body], { type: 'text/plain;charset=utf-8' }));
+  const biz = config?.business || 'NEXOCITA';
+  const parts = (a.service_name || '').split(' · ');
+  const svcName = parts[0] || a.service_name;
+  const dur = a.duration || parts[1]?.replace(' min','') || '—';
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Comprobante · ${a.id} · NEXOCITA</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{background:white;border-radius:20px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.12);overflow:hidden}
+  .card-header{background:linear-gradient(135deg,#0071e3 0%,#004ea8 100%);padding:32px 28px;color:white;display:flex;align-items:center;gap:18px}
+  .check{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;flex-shrink:0}
+  .card-header h1{font-size:22px;font-weight:700;letter-spacing:-.4px}
+  .card-header p{font-size:13px;opacity:.8;margin-top:3px}
+  .card-body{padding:28px}
+  .row{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid #f0f0f5}
+  .row:last-child{border-bottom:0}
+  .icon{width:36px;height:36px;border-radius:10px;background:#f0f6ff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .row-info{flex:1}
+  .row-label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#888;margin-bottom:3px}
+  .row-val{font-size:15px;font-weight:600;color:#1d1d1f;word-break:break-word}
+  .codes{background:#f8fafd;border-radius:14px;padding:20px;margin-top:20px;border:1px solid #e8ecf3}
+  .codes-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#666;margin-bottom:14px}
+  .code-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:white;border-radius:10px;margin-bottom:8px;border:1px solid #e5e8ef}
+  .code-label{font-size:12px;color:#888}
+  .code-val{font-family:'Courier New',monospace;font-size:14px;font-weight:700;color:#0071e3;letter-spacing:.5px}
+  .footer{text-align:center;padding:20px 28px 24px;font-size:12px;color:#aaa;border-top:1px solid #f0f0f5}
+  .footer strong{color:#0071e3}
+  @media print{body{background:white}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <div class="check">✓</div>
+    <div><h1>Cita confirmada</h1><p>${biz} · Tu tiempo, en orden</p></div>
+  </div>
+  <div class="card-body">
+    <div class="row"><div class="icon">✂️</div><div class="row-info"><div class="row-label">Servicio</div><div class="row-val">${svcName}</div></div></div>
+    <div class="row"><div class="icon">📅</div><div class="row-info"><div class="row-label">Fecha y hora</div><div class="row-val">${format(a.date)} · ${a.time} (hora de Nicaragua)</div></div></div>
+    <div class="row"><div class="icon">👤</div><div class="row-info"><div class="row-label">Cliente</div><div class="row-val">${a.name}</div></div></div>
+    <div class="row"><div class="icon">⏱️</div><div class="row-info"><div class="row-label">Duración estimada</div><div class="row-val">${dur} minutos</div></div></div>
+    <div class="codes">
+      <div class="codes-title">🔑 Datos para gestionar tu cita</div>
+      <div class="code-row"><span class="code-label">Código de reserva</span><span class="code-val">${a.id}</span></div>
+      <div class="code-row"><span class="code-label">Clave de consulta</span><span class="code-val">${receipt.token}</span></div>
+    </div>
+  </div>
+  <div class="footer">Generado por <strong>NEXOCITA</strong> · ${new Date().toLocaleDateString('es-NI')} · Presenta este comprobante al llegar</div>
+</div>
+</body>
+</html>`;
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
   const aLink = document.createElement('a');
   aLink.href = url;
-  aLink.download = `cita-${a.id}.txt`;
+  aLink.download = `comprobante-nexocita-${a.id}.html`;
   aLink.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 };
 
 const statusNames = { confirmed: 'Confirmada', completed: 'Completada', cancelled: 'Cancelada' };
