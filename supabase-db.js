@@ -30,6 +30,7 @@ const CloudDB = (() => {
     let cfg = overrideCfg || getActiveConfig();
 
     if (!cfg || !cfg.url || !cfg.anonKey) {
+      console.info('ℹ️ NEXOCITA: Supabase aún no tiene URL y anonKey configuradas en supabase-config.js. La app está funcionando en modo local (aislado por dispositivo).');
       isReady = false;
       return false;
     }
