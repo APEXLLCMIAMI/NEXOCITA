@@ -180,7 +180,7 @@ $('#booking-form').onsubmit = async e => {
     created_at: new Date().toISOString()
   };
 
-  // 1. Guardar en Firebase Cloud si está disponible (unifica todos los teléfonos y PCs)
+  // 1. Guardar en Supabase Cloud si está disponible (unifica todos los teléfonos y PCs)
   if (window.CloudDB && window.CloudDB.isReady()) {
     try {
       await window.CloudDB.saveAppointment(app, token);
@@ -828,6 +828,9 @@ async function startApp() {
   try {
     const data = await api('config');
     config = data;
+    if (data && data.supabase && data.supabase.url && window.CloudDB && !window.CloudDB.isReady()) {
+      window.CloudDB.init({ url: data.supabase.url, anonKey: data.supabase.anon_key });
+    }
     $('#business-name').textContent = `${data.business} · Reserva en pocos pasos.`;
     $('#date').min = data.today;
     $('#date').max = data.max_date;

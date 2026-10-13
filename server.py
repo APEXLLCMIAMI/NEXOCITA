@@ -350,6 +350,10 @@ class Handler(SimpleHTTPRequestHandler):
                     "authenticated": self.authenticated(con, False),
                     "today": today(),
                     "max_date": max_date(),
+                    "supabase": {
+                        "url": os.environ.get("SUPABASE_URL", ""),
+                        "anon_key": os.environ.get("SUPABASE_ANON_KEY", os.environ.get("SUPABASE_KEY", "")),
+                    },
                 }
             )
             return

@@ -128,20 +128,20 @@ function saveLocalHours(hours) { try { localStorage.setItem('nexocita_admin_hour
 function getLocalBusiness() { return localStorage.getItem('nexocita_admin_business') || 'NEXOCITA'; }
 function saveLocalBusiness(name) { try { localStorage.setItem('nexocita_admin_business', name); } catch {} }
 
-// ── Carga de datos (CloudDB Firebase > Servidor SQLite > LocalStorage) ────────
+// ── Carga de datos (CloudDB Supabase > Servidor SQLite > LocalStorage) ────────
 
 function updateCloudBadges() {
   const isCloud = window.CloudDB && window.CloudDB.isReady();
   const badge = $('#cloud-status-badge');
   const detailBadge = $('#cloud-detail-badge');
   if (badge) {
-    badge.textContent = isCloud ? '🟢 Nube Activa' : '🟡 Modo Local';
-    badge.title = isCloud ? 'Sincronizado en tiempo real con Firebase' : 'Sin conexión a la nube. Haz clic para conectar Firebase.';
+    badge.textContent = isCloud ? '🟢 Supabase Activo' : '🟡 Modo Local';
+    badge.title = isCloud ? 'Sincronizado en tiempo real con Supabase (PostgreSQL)' : 'Sin conexión a Supabase. Haz clic para configurar tu servidor.';
     badge.style.background = isCloud ? '#e6f4ea' : '#fef7e0';
     badge.style.color = isCloud ? '#137333' : '#b06000';
   }
   if (detailBadge) {
-    detailBadge.textContent = isCloud ? '🟢 Conectado a Firebase' : '🟡 Sin conectar';
+    detailBadge.textContent = isCloud ? '🟢 Conectado a Supabase' : '🟡 Sin conectar';
     detailBadge.style.background = isCloud ? '#e6f4ea' : '#fef7e0';
     detailBadge.style.color = isCloud ? '#137333' : '#b06000';
   }
@@ -572,41 +572,151 @@ $('#settings-form').onsubmit = e => {
   });
 };
 
-// ── Pestaña Nube y Sincronización (Firebase) ───────────────────────────────────
+// ── Pestaña Servidor y Sincronización (Supabase) ─────────────────────────────
 
-function parseFirebaseConfigInput(text) {
+const SUPABASE_SQL_SCHEMA = `-- ==============================================================================
+-- NEXOCITA · Esquema de Base de Datos para Servidor Supabase (PostgreSQL)
+-- ==============================================================================
+
+-- 1. TABLA: appointments (Citas y Reservas)
+CREATE TABLE IF NOT EXISTS public.appointments (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  email TEXT DEFAULT '',
+  service_id TEXT NOT NULL DEFAULT '1',
+  service_name TEXT NOT NULL,
+  duration INTEGER NOT NULL DEFAULT 30,
+  date TEXT NOT NULL,
+  time TEXT NOT NULL,
+  notes TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'confirmed',
+  token TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. TABLA: services (Catálogo de Servicios)
+CREATE TABLE IF NOT EXISTS public.services (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  duration INTEGER NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true
+);
+
+-- 3. TABLA: settings (Configuración del Negocio y Horarios)
+CREATE TABLE IF NOT EXISTS public.settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL
+);
+
+-- Índices de alto rendimiento
+CREATE INDEX IF NOT EXISTS idx_appointments_date_status ON public.appointments(date, status);
+CREATE INDEX IF NOT EXISTS idx_appointments_created ON public.appointments(created_at DESC);
+
+-- Habilitar Row Level Security (RLS)
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
+-- Políticas de acceso público (anon)
+DROP POLICY IF EXISTS "Public access appointments" ON public.appointments;
+CREATE POLICY "Public access appointments" ON public.appointments FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public access services" ON public.services;
+CREATE POLICY "Public access services" ON public.services FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public access settings" ON public.settings;
+CREATE POLICY "Public access settings" ON public.settings FOR ALL USING (true) WITH CHECK (true);
+
+-- Habilitar sincronización en tiempo real (Supabase Realtime)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'appointments'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.appointments;
+  END IF;
+END $$;
+
+-- Catálogo de servicios inicial
+INSERT INTO public.services (id, name, duration, active) VALUES
+  ('1', 'Perfilado de barba y toalla caliente', 20, true),
+  ('2', 'Corte clásico de cabello', 30, true),
+  ('3', 'Servicio integral de estilismo', 50, true),
+  ('4', 'Consulta y diagnóstico profesional', 45, true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Horarios y negocio iniciales
+INSERT INTO public.settings (key, value) VALUES
+  ('business', '{"name": "NEXOCITA"}'),
+  ('hours', '[
+    {"open": "09:00", "close": "17:00", "closed": false},
+    {"open": "09:00", "close": "17:00", "closed": false},
+    {"open": "09:00", "close": "17:00", "closed": false},
+    {"open": "09:00", "close": "17:00", "closed": false},
+    {"open": "09:00", "close": "17:00", "closed": false},
+    {"open": "09:00", "close": "17:00", "closed": false},
+    {"open": "09:00", "close": "17:00", "closed": true}
+  ]')
+ON CONFLICT (key) DO NOTHING;`;
+
+function parseSupabaseConfigInput(text) {
   text = text.trim();
-  // Caso 1: el usuario pegó el código JS completo: const firebaseConfig = { ... };
   const match = text.match(/\{[\s\S]*\}/);
   if (match) {
-    text = match[0];
+    try { return JSON.parse(match[0]); } catch (e) {}
+    try {
+      const fn = new Function('return ' + match[0]);
+      const res = fn();
+      if (res && typeof res === 'object') return res;
+    } catch (e2) {}
   }
-  // Convertir formato JS relajado a JSON si hace falta
   try {
     return JSON.parse(text);
   } catch (err) {
-    // Evaluar objeto seguro mediante Function
     try {
       const fn = new Function('return ' + text);
       const res = fn();
       if (res && typeof res === 'object') return res;
     } catch (e2) {}
   }
-  throw new Error('No se pudo interpretar el formato. Pega el objeto { apiKey: "...", projectId: "..." }');
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  let url = '', anonKey = '';
+  for (const line of lines) {
+    if (line.includes('http') || line.includes('supabase.co')) {
+      const uMatch = line.match(/https?:\/\/[^\s"',]+/);
+      if (uMatch) url = uMatch[0];
+    } else if (line.length > 30) {
+      anonKey = line.replace(/^(anon_key|anonKey|key|apikey)\s*[:=]\s*/i, '').replace(/['",]/g, '').trim();
+    }
+  }
+  if (url && anonKey) return { url, anonKey };
+  throw new Error('No se pudo interpretar el formato. Introduce la URL y la Clave Anónima.');
 }
 
 function renderCloudTab() {
-  const isCloud = window.CloudDB && window.CloudDB.isReady();
-  const input = $('#cloud-config-input');
-  if (input && !input.value.trim()) {
-    try {
-      const saved = localStorage.getItem('nexocita_firebase_config');
-      if (saved) {
-        input.value = JSON.stringify(JSON.parse(saved), null, 2);
-      } else if (window.NEXOCITA_FIREBASE_CONFIG && window.NEXOCITA_FIREBASE_CONFIG.apiKey) {
-        input.value = JSON.stringify(window.NEXOCITA_FIREBASE_CONFIG, null, 2);
-      }
-    } catch {}
+  updateCloudBadges();
+  const urlInput = $('#supabase-url-input');
+  const keyInput = $('#supabase-key-input');
+  const jsonInput = $('#cloud-config-input');
+
+  let cfg = null;
+  try {
+    const saved = localStorage.getItem('nexocita_supabase_config');
+    if (saved) cfg = JSON.parse(saved);
+    else if (window.NEXOCITA_SUPABASE_CONFIG?.url) cfg = window.NEXOCITA_SUPABASE_CONFIG;
+  } catch (e) {}
+
+  if (cfg) {
+    if (urlInput && !urlInput.value) urlInput.value = cfg.url || '';
+    if (keyInput && !keyInput.value) keyInput.value = cfg.anonKey || cfg.anon_key || '';
+    if (jsonInput && !jsonInput.value.trim()) {
+      jsonInput.value = JSON.stringify({ url: cfg.url || '', anonKey: cfg.anonKey || cfg.anon_key || '' }, null, 2);
+    }
   }
 }
 
@@ -617,34 +727,42 @@ if (cloudForm) {
     $('#cloud-error').textContent = '';
     const btn = $('#save-cloud-btn');
     btn.disabled = true;
-    btn.textContent = '⏳ Probando conexión…';
+    btn.textContent = '⏳ Probando conexión con Supabase…';
 
     try {
-      const rawText = $('#cloud-config-input').value;
-      if (!rawText.trim()) throw new Error('Pega la configuración de Firebase primero.');
-      const parsed = parseFirebaseConfigInput(rawText);
-      if (!parsed.apiKey || !parsed.projectId) {
-        throw new Error('La configuración debe contener al menos apiKey y projectId.');
+      const urlVal = $('#supabase-url-input')?.value.trim() || '';
+      const keyVal = $('#supabase-key-input')?.value.trim() || '';
+      const rawText = $('#cloud-config-input')?.value.trim() || '';
+
+      let targetCfg = null;
+      if (urlVal && keyVal) {
+        targetCfg = { url: urlVal, anonKey: keyVal };
+      } else if (rawText) {
+        targetCfg = parseSupabaseConfigInput(rawText);
       }
 
-      // Probar conexión real con Firestore
-      await window.CloudDB.testConnection(parsed);
+      if (!targetCfg || !targetCfg.url || !targetCfg.anonKey) {
+        throw new Error('Debes completar tanto la URL del Proyecto Supabase como la Clave Anónima (anon key).');
+      }
+
+      // Probar conexión real con Supabase
+      await window.CloudDB.testConnection(targetCfg);
 
       // Guardar en este navegador/dispositivo
-      localStorage.setItem('nexocita_firebase_config', JSON.stringify(parsed));
-      window.NEXOCITA_FIREBASE_CONFIG = parsed;
+      localStorage.setItem('nexocita_supabase_config', JSON.stringify(targetCfg));
+      window.NEXOCITA_SUPABASE_CONFIG = targetCfg;
 
       // Inicializar CloudDB
-      window.CloudDB.init();
+      window.CloudDB.init(targetCfg);
 
-      toast('🟢 ¡Conectado a Firebase con éxito!');
+      toast('🟢 ¡Conectado al servidor Supabase con éxito!');
       await load();
       $('#cloud-error').textContent = '';
     } catch (err) {
-      $('#cloud-error').textContent = 'Error: ' + (err.message || 'No se pudo conectar a Firebase.');
+      $('#cloud-error').textContent = 'Error: ' + (err.message || 'No se pudo conectar a Supabase.');
     } finally {
       btn.disabled = false;
-      btn.textContent = '💾 Conectar y Probar Nube';
+      btn.textContent = '💾 Conectar y Probar Supabase';
     }
   };
 }
@@ -653,11 +771,11 @@ const migrateBtn = $('#migrate-cloud-btn');
 if (migrateBtn) {
   migrateBtn.onclick = async () => {
     if (!window.CloudDB || !window.CloudDB.isReady()) {
-      toast('Conecta Firebase primero antes de migrar.');
+      toast('Conecta el servidor Supabase primero antes de migrar.');
       return;
     }
     migrateBtn.disabled = true;
-    migrateBtn.textContent = '⏳ Subiendo datos a la nube…';
+    migrateBtn.textContent = '⏳ Subiendo datos a Supabase…';
     try {
       const localApps = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
       const count = await window.CloudDB.migrateLocalData(
@@ -665,13 +783,42 @@ if (migrateBtn) {
         getLocalServices(),
         { business: getLocalBusiness(), hours: getLocalHours() }
       );
-      toast(`🚀 ¡${count} cita(s) subidas a la nube con éxito!`);
+      toast(`🚀 ¡${count} cita(s) subidas a Supabase con éxito!`);
       await load();
     } catch (err) {
       $('#cloud-error').textContent = 'Error migrando: ' + err.message;
     } finally {
       migrateBtn.disabled = false;
-      migrateBtn.textContent = '🚀 Subir citas de esta PC a la Nube';
+      migrateBtn.textContent = '🚀 Subir citas de esta PC a Supabase';
+    }
+  };
+}
+
+// Control del diálogo modal de Esquema SQL
+const sqlDialog = $('#sql-dialog');
+const viewSqlBtn = $('#view-sql-btn');
+const closeSqlBtn = $('#close-sql-btn');
+const closeSqlX = $('#close-sql-dialog-x');
+const copySqlBtn = $('#copy-sql-btn');
+const sqlBox = $('#sql-content-box');
+
+if (viewSqlBtn && sqlDialog) {
+  viewSqlBtn.onclick = () => {
+    if (sqlBox) sqlBox.value = SUPABASE_SQL_SCHEMA;
+    sqlDialog.showModal();
+  };
+}
+if (closeSqlBtn && sqlDialog) closeSqlBtn.onclick = () => sqlDialog.close();
+if (closeSqlX && sqlDialog) closeSqlX.onclick = () => sqlDialog.close();
+if (copySqlBtn && sqlBox) {
+  copySqlBtn.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(SUPABASE_SQL_SCHEMA);
+      toast('📋 ¡Esquema SQL copiado al portapapeles!');
+    } catch {
+      sqlBox.select();
+      document.execCommand('copy');
+      toast('📋 ¡Esquema SQL copiado!');
     }
   };
 }

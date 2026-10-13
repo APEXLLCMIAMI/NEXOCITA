@@ -46,6 +46,12 @@ El servidor confirmará en la consola:
 NEXOCITA listo en http://127.0.0.1:8766
 ```
 
+### Opción 3: Servidor en la Nube con Supabase (24/7 Multi-dispositivo)
+NEXOCITA utiliza **Supabase (PostgreSQL + Realtime)** como servidor backend en la nube. Permite que reservas desde cualquier celular o PC se sincronicen al instante:
+1. Crea un proyecto gratuito en [supabase.com](https://supabase.com).
+2. Ejecuta el script `supabase_schema.sql` en el **SQL Editor** de Supabase para crear las tablas (`appointments`, `services`, `settings`) y habilitar Realtime.
+3. Copia tu **Project URL** y **anon key** y pégalas en `supabase-config.js` o directamente en el Panel Administrativo (`panel.html` pestaña *⚡ Servidor Supabase*).
+
 ### Accesos del Sistema:
 - **Página Principal del Cliente:** [http://127.0.0.1:8766/index.html](http://127.0.0.1:8766/index.html)
 - **Panel Administrativo del Negocio:** [http://127.0.0.1:8766/panel.html](http://127.0.0.1:8766/panel.html)
@@ -57,7 +63,7 @@ NEXOCITA listo en http://127.0.0.1:8766
 ```text
 nexocita/
 ├── assets/                  # Medios multimedia (video .webm, audio .wav, subtitulos .vtt, visual-1 a 6)
-├── data/                    # Base de datos SQLite (nexocita.sqlite3)
+├── data/                    # Base de datos SQLite local (nexocita.sqlite3)
 ├── docs/                    # Reportes de calidad QA (qa-resultados.json)
 ├── tests/                   # Pruebas automatizadas de integridad (test_system.py)
 ├── app.js                   # Lógica de interacción, infografía, tabs y motor de quiz
@@ -67,6 +73,9 @@ nexocita/
 ├── panel.html               # Panel de control administrativo del negocio
 ├── panel.js                 # Lógica del panel de administración
 ├── server.py                # Servidor HTTP REST y API en Python estándar con SQLite
+├── supabase_schema.sql      # Esquema PostgreSQL y Realtime para Supabase
+├── supabase-config.js       # Credenciales del servidor Supabase
+├── supabase-db.js           # Cliente CloudDB con Supabase SDK y WebSockets Realtime
 ├── styles.css               # Sistema de diseño, tokens, componentes y responsividad
 ├── system.css               # Estilos del sistema de reservas y panel
 ├── iniciar.cmd              # Script de arranque rápido para Windows

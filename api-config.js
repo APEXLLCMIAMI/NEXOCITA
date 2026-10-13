@@ -1,9 +1,10 @@
-// ─── URL del servidor API ─────────────────────────────────────────────────────
-// Si el sitio se sirve desde el mismo servidor (local o Railway), usa rutas relativas.
-// Si está en GitHub Pages u otro hosting estático, define window.NEXOCITA_API_URL
-// apuntando al servidor Railway, p.ej.:
-//   window.NEXOCITA_API_URL = 'https://tu-app.up.railway.app';
-// (puedes ponerlo en un <script> en index.html y panel.html)
+// ─── Configuración de Conexión del Servidor (Supabase / API) ───────────────────
+// 1. Conexión recomendada 24/7 en la nube: Supabase (PostgreSQL + Realtime).
+//    Configura tus credenciales en 'supabase-config.js' o desde la pestaña "⚡ Servidor Supabase" en panel.html.
+// 2. Conexión alternativa: Servidor Python local o Railway.
+//    Si estás en GitHub Pages u otro hosting estático y usas el servidor Python,
+//    define window.NEXOCITA_API_URL:
+//      window.NEXOCITA_API_URL = 'https://tu-app.up.railway.app';
 const API_BASE = (typeof window !== 'undefined' && window.NEXOCITA_API_URL)
   ? window.NEXOCITA_API_URL.replace(/\/$/, '')
   : '';
