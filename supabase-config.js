@@ -14,7 +14,7 @@ window.NEXOCITA_SUPABASE_CONFIG = window.NEXOCITA_SUPABASE_CONFIG || (() => {
     }
   } catch (e) {}
   return {
-    url: "",      // Ejemplo: "https://abcdefghijklm.supabase.co"
-    anonKey: ""   // Ejemplo: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    url: "https://esjbrsshfjxhuiypiftr.supabase.co",      // Proyecto: APEXLLCMIAMI's Project
+    anonKey: ""   // Pega aquí la clave anon public de Supabase
   };
 })();
