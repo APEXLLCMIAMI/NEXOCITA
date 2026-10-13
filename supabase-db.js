@@ -74,11 +74,11 @@ const CloudDB = (() => {
           auth: { persistSession: false }
         });
 
-        // Intentar leer la tabla settings
-        const { error } = await testClient.from('settings').select('key').limit(1);
+      // Intentar leer la tabla appointments (siempre existe en NEXOCITA)
+        const { error } = await testClient.from('appointments').select('id').limit(1);
         if (error) {
-          if (error.code === '42P01' || (error.message && error.message.includes('settings'))) {
-            throw new Error('Conexión con Supabase exitosa, pero las tablas aún no existen. Ejecuta el archivo supabase_schema.sql en el SQL Editor de Supabase.');
+          if (error.code === '42P01') {
+            throw new Error('Conexión con Supabase exitosa, pero la tabla appointments no existe. Ejecuta el archivo supabase_schema.sql en el SQL Editor de Supabase.');
           }
           throw new Error(error.message || 'Error al conectar con Supabase.');
         }
