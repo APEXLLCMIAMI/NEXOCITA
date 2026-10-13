@@ -246,7 +246,12 @@ class Handler(SimpleHTTPRequestHandler):
 
     def send_head(self):
         path = unquote(urlparse(self.path).path).lstrip("/") or "index.html"
-        public = {"index.html", "panel.html", "dispositivos.html", "documentacion.html", "app.js", "booking.js", "panel.js", "styles.css", "system.css"}
+        public = {
+            "index.html", "panel.html", "dispositivos.html", "documentacion.html",
+            "app.js", "booking.js", "panel.js", "styles.css", "system.css",
+            "supabase-config.js", "supabase-db.js", "api-config.js",
+            "firebase-config.js", "firebase-db.js", "supabase_schema.sql"
+        }
         asset = path.startswith("assets/") and Path(path).suffix.lower() in {".jpg", ".png", ".webp", ".wav", ".webm", ".vtt"}
         resolved = (ROOT / path).resolve()
         if not resolved.is_relative_to(ROOT) or ".." in Path(path).parts or not (path in public or asset) or not resolved.is_file():
@@ -605,7 +610,8 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", "8766"))
-    host = os.environ.get("HOST", "127.0.0.1")
+    host = os.environ.get("HOST", "0.0.0.0")
     server = ThreadingHTTPServer((host, port), Handler)
-    print(f"NEXOCITA listo en http://{host}:{port}", flush=True)
+    print(f"NEXOCITA listo en http://localhost:{port}", flush=True)
+    print(f"Para tu teléfono en la misma red Wi-Fi: http://192.168.1.15:{port}", flush=True)
     server.serve_forever()
