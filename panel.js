@@ -87,24 +87,13 @@ async function action(callback) {
 function getLocalAppointmentsList() {
   let raw = [];
   try { raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]'); } catch {}
-  if (!raw.length) {
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-    const seed = [
-      { appointment: { id: 'NC-582104', name: 'Oliver Corrales', phone: '88992211', email: 'oliver@ejemplo.com', service_name: 'Perfilado de barba y toalla caliente', duration: 20, date: today, time: '10:00', notes: 'Cliente frecuente', status: 'confirmed' }, token: 'seed1' },
-      { appointment: { id: 'NC-914372', name: 'María Rodríguez', phone: '77665544', email: 'maria@ejemplo.com', service_name: 'Corte clásico de cabello', duration: 30, date: today, time: '14:30', notes: '', status: 'confirmed' }, token: 'seed2' },
-      { appointment: { id: 'NC-349811', name: 'Carlos Mendoza', phone: '82345678', email: 'carlos@ejemplo.com', service_name: 'Servicio integral de estilismo', duration: 50, date: tomorrow, time: '11:00', notes: 'Primera visita', status: 'confirmed' }, token: 'seed3' }
-    ];
-    try { localStorage.setItem('nexocita_appointments', JSON.stringify(seed)); } catch {}
-    raw = seed;
-  }
   return raw.map(x => x.appointment).filter(Boolean);
 }
 
 function buildLocalClients(appointments) {
   const map = new Map();
   appointments.forEach(a => {
-    const key = a.phone || a.name;
+    const key = (a.phone || '').replace(/\D/g, '') || a.name;
     if (!map.has(key)) map.set(key, { id: map.size + 1, name: a.name, phone: a.phone, email: a.email || '', visits: 0 });
     const c = map.get(key);
     c.visits++;
@@ -148,6 +137,7 @@ function updateCloudBadges() {
 }
 
 async function load() {
+  data = null;
   updateCloudBadges();
 
   // 1. Prioridad: CloudDB Firebase (sincroniza todos los dispositivos en tiempo real)
@@ -159,16 +149,15 @@ async function load() {
         window.CloudDB.getSettings()
       ]);
 
-      const apps = (cloudApps && cloudApps.length)
-        ? cloudApps.map(x => x.appointment).filter(Boolean)
-        : getLocalAppointmentsList();
+      if (!Array.isArray(cloudApps)) throw new Error('La agenda compartida no respondió.');
+      const apps = cloudApps.map(x => x.appointment).filter(Boolean);
 
       data = {
-        business: cloudSettings?.business || getLocalBusiness(),
+        business: cloudSettings?.business || 'NEXOCITA',
         appointments: apps,
         clients: buildLocalClients(apps),
-        services: (cloudSvcs && cloudSvcs.length) ? cloudSvcs : getLocalServices(),
-        hours: cloudSettings?.hours || getLocalHours()
+        services: Array.isArray(cloudSvcs) ? cloudSvcs : DEFAULT_SERVICES,
+        hours: cloudSettings?.hours || DEFAULT_HOURS
       };
 
       // Escuchar cambios en vivo desde cualquier teléfono o PC
@@ -184,21 +173,18 @@ async function load() {
       });
 
     } catch (err) {
-      console.warn('Error cargando desde CloudDB, usando respaldo:', err);
+      $('#global-error').textContent = err.message;
+      const badge = $('#cloud-status-badge');
+      if (badge) badge.textContent = 'Sin sincronización';
+      $('#dashboard').hidden = true;
+      throw err;
     }
   }
 
   // 2. Si no hay CloudDB o no devolvió datos, intentar servidor API o local
   if (!data || !data.appointments) {
     if (isOffline) {
-      const appointments = getLocalAppointmentsList();
-      data = {
-        business: getLocalBusiness(),
-        appointments,
-        clients: buildLocalClients(appointments),
-        services: getLocalServices(),
-        hours: getLocalHours()
-      };
+      throw new Error('No hay conexión con la agenda compartida. Los registros locales no son la agenda del negocio.');
     } else {
       try {
         data = await api('admin/data');
@@ -447,7 +433,7 @@ function renderClients() {
         name.querySelector('input').minLength = 2;
         openEditor('Editar cliente', [name, email], async values => {
           if (window.CloudDB && window.CloudDB.isReady()) {
-            const apps = data.appointments.filter(a => a.phone === c.phone);
+            const apps = data.appointments.filter(a => (a.phone || '').replace(/\D/g,'') === (c.phone || '').replace(/\D/g,''));
             for (const app of apps) {
               await window.CloudDB.updateAppointment(app.id, {
                 name: values.name || app.name,
@@ -574,129 +560,7 @@ $('#settings-form').onsubmit = e => {
 
 // ── Pestaña Servidor y Sincronización (Supabase) ─────────────────────────────
 
-const SUPABASE_SQL_SCHEMA = `-- ==============================================================================
--- NEXOCITA · Esquema de Base de Datos para Servidor Supabase (PostgreSQL)
--- ==============================================================================
-
--- 1. TABLA: appointments (Citas y Reservas)
-CREATE TABLE IF NOT EXISTS public.appointments (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  email TEXT DEFAULT '',
-  service_id TEXT NOT NULL DEFAULT '1',
-  service_name TEXT NOT NULL,
-  duration INTEGER NOT NULL DEFAULT 30,
-  date TEXT NOT NULL,
-  time TEXT NOT NULL,
-  notes TEXT DEFAULT '',
-  status TEXT NOT NULL DEFAULT 'confirmed',
-  token TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
--- 2. TABLA: services (Catálogo de Servicios)
-CREATE TABLE IF NOT EXISTS public.services (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  duration INTEGER NOT NULL,
-  active BOOLEAN NOT NULL DEFAULT true
-);
-
--- 3. TABLA: settings (Configuración del Negocio y Horarios)
-CREATE TABLE IF NOT EXISTS public.settings (
-  key TEXT PRIMARY KEY,
-  value JSONB NOT NULL
-);
-
--- Índices de alto rendimiento
-CREATE INDEX IF NOT EXISTS idx_appointments_date_status ON public.appointments(date, status);
-CREATE INDEX IF NOT EXISTS idx_appointments_created ON public.appointments(created_at DESC);
-
--- Habilitar Row Level Security (RLS)
-ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
-
--- Políticas de acceso público (anon)
-DROP POLICY IF EXISTS "Public access appointments" ON public.appointments;
-CREATE POLICY "Public access appointments" ON public.appointments FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Public access services" ON public.services;
-CREATE POLICY "Public access services" ON public.services FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Public access settings" ON public.settings;
-CREATE POLICY "Public access settings" ON public.settings FOR ALL USING (true) WITH CHECK (true);
-
--- Habilitar sincronización en tiempo real (Supabase Realtime)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication_tables 
-    WHERE pubname = 'supabase_realtime' 
-      AND schemaname = 'public' 
-      AND tablename = 'appointments'
-  ) THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.appointments;
-  END IF;
-END $$;
-
--- Catálogo de servicios inicial
-INSERT INTO public.services (id, name, duration, active) VALUES
-  ('1', 'Perfilado de barba y toalla caliente', 20, true),
-  ('2', 'Corte clásico de cabello', 30, true),
-  ('3', 'Servicio integral de estilismo', 50, true),
-  ('4', 'Consulta y diagnóstico profesional', 45, true)
-ON CONFLICT (id) DO NOTHING;
-
--- Horarios y negocio iniciales
-INSERT INTO public.settings (key, value) VALUES
-  ('business', '{"name": "NEXOCITA"}'),
-  ('hours', '[
-    {"open": "09:00", "close": "17:00", "closed": false},
-    {"open": "09:00", "close": "17:00", "closed": false},
-    {"open": "09:00", "close": "17:00", "closed": false},
-    {"open": "09:00", "close": "17:00", "closed": false},
-    {"open": "09:00", "close": "17:00", "closed": false},
-    {"open": "09:00", "close": "17:00", "closed": false},
-    {"open": "09:00", "close": "17:00", "closed": true}
-  ]')
-ON CONFLICT (key) DO NOTHING;`;
-
-function parseSupabaseConfigInput(text) {
-  text = text.trim();
-  const match = text.match(/\{[\s\S]*\}/);
-  if (match) {
-    try { return JSON.parse(match[0]); } catch (e) {}
-    try {
-      const fn = new Function('return ' + match[0]);
-      const res = fn();
-      if (res && typeof res === 'object') return res;
-    } catch (e2) {}
-  }
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    try {
-      const fn = new Function('return ' + text);
-      const res = fn();
-      if (res && typeof res === 'object') return res;
-    } catch (e2) {}
-  }
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  let url = '', anonKey = '';
-  for (const line of lines) {
-    if (line.includes('http') || line.includes('supabase.co')) {
-      const uMatch = line.match(/https?:\/\/[^\s"',]+/);
-      if (uMatch) url = uMatch[0];
-    } else if (line.length > 30) {
-      anonKey = line.replace(/^(anon_key|anonKey|key|apikey)\s*[:=]\s*/i, '').replace(/['",]/g, '').trim();
-    }
-  }
-  if (url && anonKey) return { url, anonKey };
-  throw new Error('No se pudo interpretar el formato. Introduce la URL y la Clave Anónima.');
-}
+const SUPABASE_SQL_SCHEMA = 'La base de datos ya está configurada y protegida. No ejecutes esquemas de acceso público.';
 
 function renderCloudTab() {
   updateCloudBadges();
@@ -857,12 +721,17 @@ $('#auth-form').onsubmit = async e => {
   $('#auth-submit').disabled = true;
   const values = Object.fromEntries(new FormData(e.target));
 
-  if (isOffline) {
-    sessionStorage.setItem('nexocita_admin_auth', 'true');
-    e.target.reset();
-    await load();
-    $('#auth-submit').disabled = false;
+  if (window.CloudDB?.isReady()) {
+    try {
+      await window.CloudDB.signIn(values.email, values.password);
+      e.target.reset(); await load();
+    } catch(error) { $('#auth-error').textContent = error.message; }
+    finally { $('#auth-submit').disabled = false; }
     return;
+  }
+  if (isOffline) {
+    $('#auth-error').textContent = 'No hay conexión con el servidor.';
+    $('#auth-submit').disabled = false; return;
   }
 
   try {
@@ -874,9 +743,7 @@ $('#auth-form').onsubmit = async e => {
   } catch (error) {
     if (error.message === 'offline') {
       isOffline = true;
-      sessionStorage.setItem('nexocita_admin_auth', 'true');
-      e.target.reset();
-      await load();
+      $('#auth-error').textContent = 'No hay conexión con el servidor.';
     } else {
       $('#auth-error').textContent = error.message;
     }
@@ -886,6 +753,7 @@ $('#auth-form').onsubmit = async e => {
 };
 
 $('#logout').onclick = () => action(async () => {
+  if (window.CloudDB?.isReady()) { await window.CloudDB.signOut(); location.reload(); return; }
   if (isOffline) {
     sessionStorage.removeItem('nexocita_admin_auth');
     location.reload();
@@ -903,6 +771,25 @@ $('#refresh').onclick = () => action(async () => {
   toast('Agenda actualizada.');
 });
 
+let refreshing = false;
+async function refreshSharedAppointments() {
+  if (!data || document.hidden || !window.CloudDB?.isReady() || refreshing) return;
+  refreshing = true;
+  try {
+    const rows = await window.CloudDB.getAppointments();
+    data.appointments = rows.map(x => x.appointment);
+    data.clients = buildLocalClients(data.appointments);
+    renderMetrics(); renderCalendar(); renderAppointments(); renderClients();
+    $('#global-error').textContent = '';
+    $('#cloud-status-badge').textContent = 'Agenda sincronizada';
+  } catch (error) {
+    $('#global-error').textContent = 'No se pudo actualizar la agenda: ' + error.message;
+    $('#cloud-status-badge').textContent = 'Sin sincronización';
+  } finally { refreshing = false; }
+}
+setInterval(refreshSharedAppointments, 15000);
+window.addEventListener('focus', refreshSharedAppointments);
+
 // ── Inicialización ────────────────────────────────────────────────────────────
 
 $('#global-error').textContent = '';
@@ -915,9 +802,17 @@ action(async () => {
     today: todayStr,
     max_date: maxDateStr,
     setup_required: false,
-    authenticated: sessionStorage.getItem('nexocita_admin_auth') === 'true'
+    authenticated: false
   };
 
+  if (window.CloudDB?.isReady()) {
+    isOffline = true;
+    $('#admin-email-label').hidden = false;
+    $('#admin-email').required = true;
+    selectedDate = config.today; month = selectedDate.slice(0,7);
+    if (await window.CloudDB.isAdmin()) await load();
+    return;
+  }
   try {
     const serverCfg = await api('config');
     config = serverCfg;

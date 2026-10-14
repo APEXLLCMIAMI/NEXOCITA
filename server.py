@@ -424,11 +424,17 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/book" and method == "POST":
             if "password" not in cfg:
                 raise Problem("El dueño debe configurar el negocio antes de recibir reservas.", 409)
-            name = clean_text(body.get("name"), "nombre", 2, 100)
-            phone = clean_text(body.get("phone"), "teléfono", 7, 25)
-            phone = "".join(ch for ch in phone if ch.isdigit())
-            if len(phone) < 7 or len(phone) > 15:
-                raise Problem("Introduce un teléfono de 7 a 15 dígitos.")
+            name = clean_text(body.get("name"), "nombre", 3, 100)
+            if not re.search(r"[a-zA-ZáéíóúÁÉÍÓÚñÑ]", name):
+                raise Problem("Introduce un nombre válido con letras.")
+            raw_phone = clean_text(body.get("phone"), "teléfono", 7, 25)
+            if re.search(r"[a-zA-Z]", raw_phone):
+                raise Problem("El número de teléfono no puede contener letras.")
+            phone = "".join(ch for ch in raw_phone if ch.isdigit())
+            if len(phone) < 8 or len(phone) > 15:
+                raise Problem("Introduce un teléfono válido de 8 a 15 dígitos.")
+            if len(set(phone)) == 1 or phone in ("12345678", "87654321", "01234567", "123456789"):
+                raise Problem("El número de teléfono ingresado no es válido.")
             email = clean_text(body.get("email", ""), "correo", 0, 150)
             if email and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
                 raise Problem("Introduce un correo válido.")

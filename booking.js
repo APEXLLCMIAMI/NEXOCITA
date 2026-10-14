@@ -7,10 +7,12 @@ let slotRequest = 0;
 let isOfflineMode = false;
 
 const DEFAULT_SERVICES = [
-  { id: '1', name: 'Perfilado de barba y toalla caliente', duration: 20 },
-  { id: '2', name: 'Corte clásico de cabello', duration: 30 },
-  { id: '3', name: 'Servicio integral de estilismo', duration: 50 },
-  { id: '4', name: 'Consulta y diagnóstico profesional', duration: 45 }
+  { id: '1', name: 'Perfilado de barba y toalla caliente', duration: 20, price: 'C$ 150' },
+  { id: '2', name: 'Corte clásico & degradado fade', duration: 30, price: 'C$ 200' },
+  { id: '3', name: 'Combo VIP: Corte + Barba + Toalla', duration: 50, price: 'C$ 320' },
+  { id: '4', name: 'Afeitado clásico tradicional a navaja', duration: 35, price: 'C$ 180' },
+  { id: '5', name: 'Diseño de líneas & Freestyle', duration: 25, price: 'C$ 120' },
+  { id: '6', name: 'Tratamiento capilar y lavado barbero', duration: 30, price: 'C$ 160' }
 ];
 
 const format = date => {
@@ -116,18 +118,12 @@ async function slots() {
   if (window.CloudDB && window.CloudDB.isReady()) {
     $('#slots').textContent = 'Consultando disponibilidad en la nube…';
     try {
-      const booked = await window.CloudDB.getAppointmentsByDate(date);
+      const avail = await window.CloudDB.getSlots(date, service);
       if (request !== slotRequest) return;
-      const allTimes = [
-        '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-        '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'
-      ];
-      const bookedSet = new Set((booked || []).map(x => x.time));
-      const avail = allTimes.filter(t => !bookedSet.has(t));
       renderSlotButtons(avail, date);
       return;
     } catch (e) {
-      console.warn('Error al consultar horarios en CloudDB:', e);
+      $('#slots').textContent = e.message; return;
     }
   }
 
@@ -144,24 +140,186 @@ async function slots() {
     }
   }
 
-  renderSlotButtons(generateSlots(date), date);
+  $('#slots').textContent = 'Sin conexión a la agenda compartida. No se pueden confirmar reservas.';
 }
 
 $('#service').onchange = slots;
 $('#date').onchange = slots;
 
+function checkPhone(raw) {
+  if (!raw || !raw.trim()) return { ok: false, msg: 'Ingresa tu número de teléfono.' };
+  const str = raw.trim();
+  if (/[a-zA-Z]/.test(str)) return { ok: false, msg: 'El teléfono no puede contener letras ni palabras.' };
+  if (/[^0-9+\s\-()]/.test(str)) return { ok: false, msg: 'Caracteres no válidos en el teléfono.' };
+  const digits = str.replace(/\D/g, '');
+  if (digits.length < 8) return { ok: false, msg: 'El número debe tener al menos 8 dígitos (ej: 8888-8888).' };
+  if (digits.length > 15) return { ok: false, msg: 'El número no puede exceder 15 dígitos.' };
+  if (/^(\d)\1+$/.test(digits)) return { ok: false, msg: 'Ingresa un número telefónico real y válido.' };
+  if (['12345678', '87654321', '01234567', '123456789'].includes(digits)) {
+    return { ok: false, msg: 'Ingresa un número telefónico real.' };
+  }
+  if (digits.length === 8 && !/^[2578]/.test(digits)) {
+    return { ok: false, msg: 'En Nicaragua los números válidos inician con 2, 5, 7 u 8.' };
+  }
+  if (digits.startsWith('505') && digits.length === 11) {
+    const local = digits.slice(3);
+    if (!/^[2578]/.test(local)) {
+      return { ok: false, msg: 'El número de Nicaragua tras +505 debe iniciar con 2, 5, 7 u 8.' };
+    }
+  }
+  return { ok: true, digits, msg: 'Teléfono válido ✓' };
+}
+
+function checkName(raw) {
+  if (!raw || !raw.trim()) return { ok: false, msg: 'Ingresa tu nombre completo.' };
+  const s = raw.trim();
+  if (s.length < 3) return { ok: false, msg: 'El nombre debe tener al menos 3 caracteres.' };
+  if (!/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(s)) return { ok: false, msg: 'El nombre debe contener letras.' };
+  if (/^[0-9\s]+$/.test(s)) return { ok: false, msg: 'El nombre no puede ser únicamente numérico.' };
+  return { ok: true, msg: 'Nombre válido ✓' };
+}
+
+function checkEmail(raw) {
+  if (!raw || !raw.trim()) return { ok: true, msg: '' };
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (!re.test(raw.trim())) return { ok: false, msg: 'Ingresa un correo válido (ej. usuario@dominio.com).' };
+  return { ok: true, msg: 'Correo válido ✓' };
+}
+
+// Configurar feedback en vivo en los campos de datos
+function setupFormLiveValidation() {
+  const pInput = $('[name="phone"]');
+  const nInput = $('[name="name"]');
+  const eInput = $('[name="email"]');
+  const pHelp = $('#phone-feedback');
+  const nHelp = $('#name-feedback');
+  const eHelp = $('#email-feedback');
+
+  if (pInput) {
+    pInput.addEventListener('input', () => {
+      let val = pInput.value;
+      if (/[a-zA-Z]/.test(val)) {
+        pInput.value = val.replace(/[a-zA-Z]/g, '');
+      }
+      // Formateo visual 8888-8888 si son 8 dígitos
+      const cleanDigits = pInput.value.replace(/\D/g, '');
+      if (cleanDigits.length === 8 && !pInput.value.includes('+') && !pInput.value.includes('-')) {
+        pInput.value = `${cleanDigits.slice(0, 4)}-${cleanDigits.slice(4)}`;
+      }
+      if (pHelp) {
+        if (pInput.value.trim().length >= 7) {
+          const res = checkPhone(pInput.value);
+          pHelp.textContent = res.msg;
+          pHelp.className = 'field-help ' + (res.ok ? 'success' : 'error');
+          pInput.classList.toggle('invalid', !res.ok);
+          pInput.classList.toggle('valid', res.ok);
+        } else {
+          pHelp.textContent = '';
+          pInput.classList.remove('invalid', 'valid');
+        }
+      }
+    });
+    pInput.addEventListener('blur', () => {
+      if (pInput.value.trim()) {
+        const res = checkPhone(pInput.value);
+        if (pHelp) {
+          pHelp.textContent = res.msg;
+          pHelp.className = 'field-help ' + (res.ok ? 'success' : 'error');
+        }
+        pInput.classList.toggle('invalid', !res.ok);
+        pInput.classList.toggle('valid', res.ok);
+      }
+    });
+  }
+
+  if (nInput) {
+    nInput.addEventListener('blur', () => {
+      if (nInput.value.trim()) {
+        const res = checkName(nInput.value);
+        if (nHelp) {
+          nHelp.textContent = res.msg;
+          nHelp.className = 'field-help ' + (res.ok ? 'success' : 'error');
+        }
+        nInput.classList.toggle('invalid', !res.ok);
+        nInput.classList.toggle('valid', res.ok);
+      }
+    });
+  }
+
+  if (eInput) {
+    eInput.addEventListener('blur', () => {
+      if (eInput.value.trim()) {
+        const res = checkEmail(eInput.value);
+        if (eHelp) {
+          eHelp.textContent = res.msg;
+          eHelp.className = 'field-help ' + (res.ok ? 'success' : 'error');
+        }
+        eInput.classList.toggle('invalid', !res.ok);
+        eInput.classList.toggle('valid', res.ok);
+      }
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupFormLiveValidation);
+} else {
+  setupFormLiveValidation();
+}
+
 $('#booking-form').onsubmit = async e => {
   e.preventDefault();
   $('#booking-error').textContent = '';
   const values = Object.fromEntries(new FormData(e.target));
-  if (!values.time) {
-    $('#booking-error').textContent = 'Selecciona un horario.';
+
+  // 1. Validar nombre
+  const nameRes = checkName(values.name);
+  if (!nameRes.ok) {
+    $('#booking-error').textContent = nameRes.msg;
+    const nEl = $('[name="name"]');
+    if (nEl) { nEl.focus(); nEl.classList.add('invalid'); }
+    const nHelp = $('#name-feedback');
+    if (nHelp) { nHelp.textContent = nameRes.msg; nHelp.className = 'field-help error'; }
     return;
   }
+
+  // 2. Validar teléfono estrictamente
+  const phoneRes = checkPhone(values.phone);
+  if (!phoneRes.ok) {
+    $('#booking-error').textContent = phoneRes.msg;
+    const pEl = $('[name="phone"]');
+    if (pEl) { pEl.focus(); pEl.classList.add('invalid'); }
+    const pHelp = $('#phone-feedback');
+    if (pHelp) { pHelp.textContent = phoneRes.msg; pHelp.className = 'field-help error'; }
+    return;
+  }
+
+  // 3. Validar email si fue proporcionado
+  const emailRes = checkEmail(values.email);
+  if (!emailRes.ok) {
+    $('#booking-error').textContent = emailRes.msg;
+    const eEl = $('[name="email"]');
+    if (eEl) { eEl.focus(); eEl.classList.add('invalid'); }
+    const eHelp = $('#email-feedback');
+    if (eHelp) { eHelp.textContent = emailRes.msg; eHelp.className = 'field-help error'; }
+    return;
+  }
+
+  // 4. Validar fecha y horario
+  if (!values.date) {
+    $('#booking-error').textContent = 'Selecciona una fecha para tu cita.';
+    $('#date')?.focus();
+    return;
+  }
+  if (!values.time) {
+    $('#booking-error').textContent = 'Selecciona un horario disponible.';
+    return;
+  }
+
   $('#confirm-booking').disabled = true;
 
-  const id = 'NC-' + Math.floor(100000 + Math.random() * 900000);
-  const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+  const id = 'NC-' + crypto.randomUUID().slice(0, 13).toUpperCase();
+  const token = crypto.randomUUID().replaceAll('-', '');
   const serviceName = $('#service').selectedOptions[0]?.textContent || 'Servicio';
   const duration = config?.services?.find(s => String(s.id) === String(values.service))?.duration || 30;
 
@@ -183,13 +341,16 @@ $('#booking-form').onsubmit = async e => {
   // 1. Guardar en Supabase Cloud si está disponible (unifica todos los teléfonos y PCs)
   if (window.CloudDB && window.CloudDB.isReady()) {
     try {
-      await window.CloudDB.saveAppointment(app, token);
+      const saved = await window.CloudDB.saveAppointment(app, token);
+      if (!saved) throw new Error('El servidor no confirmó la reserva.');
       saveStoredAppointment(app, token);
       receipt = { appointment: app, token };
       showSuccess(app, token);
       return;
     } catch (cloudErr) {
-      console.error('Error guardando en CloudDB:', cloudErr);
+      $('#booking-error').textContent = 'La cita NO se guardó en la agenda: ' + (cloudErr.message || 'sin conexión') + '. Inténtalo de nuevo.';
+      $('#confirm-booking').disabled = false;
+      return;
     }
   }
 
@@ -211,10 +372,8 @@ $('#booking-form').onsubmit = async e => {
     }
   }
 
-  // 3. Fallback de contingencia local
-  saveStoredAppointment(app, token);
-  receipt = { appointment: app, token };
-  showSuccess(app, token);
+  $('#booking-error').textContent = 'No hay conexión con la agenda compartida. La cita NO se ha confirmado.';
+  $('#confirm-booking').disabled = false;
 };
 
 function showSuccess(a, token) {
@@ -701,7 +860,9 @@ async function lookup(cancel = false) {
   if (window.CloudDB && window.CloudDB.isReady()) {
     try {
       if (cancel) {
-        await window.CloudDB.updateAppointment(payload.id, { status: 'cancelled' });
+        const verified = await window.CloudDB.lookupAppointment(payload.id, payload.token);
+        if (!verified) throw new Error('Código o clave incorrectos.');
+        await window.CloudDB.cancelAppointment(payload.id, payload.token);
         updateStoredAppointment(payload.id, payload.token, 'cancelled');
         const updated = await window.CloudDB.lookupAppointment(payload.id, payload.token);
         if (updated) renderLookupCard(updated);
@@ -723,25 +884,8 @@ async function lookup(cancel = false) {
     }
   }
 
-  // 2. Modo offline local
   if (isOfflineMode) {
-    if (cancel) {
-      const updated = updateStoredAppointment(payload.id, payload.token, 'cancelled');
-      if (updated) {
-        renderLookupCard(updated);
-        slots();
-      } else {
-        $('#lookup-error').textContent = 'No se encontró la cita con los datos proporcionados.';
-      }
-      return;
-    }
-    const found = getStoredAppointments().find(x => x.appointment && x.appointment.id === payload.id && x.token === payload.token);
-    if (found) {
-      renderLookupCard(found.appointment);
-    } else {
-      $('#lookup-result').replaceChildren();
-      $('#lookup-error').textContent = 'No se encontró una cita con ese código y clave.';
-    }
+    $('#lookup-error').textContent = 'No hay conexión con la agenda. No se pueden consultar ni cancelar citas.';
     return;
   }
 
@@ -786,12 +930,13 @@ $('#lookup-form').onsubmit = e => {
 function setupFallback() {
   isOfflineMode = true;
   const todayStr = new Date().toISOString().split('T')[0];
-  config = { business: 'NEXOCITA', today: todayStr, setup_required: false };
+  config = { business: 'NEXOCITA Barber Studio', today: todayStr, setup_required: false };
   $('#date').min = todayStr;
   $('#date').value = todayStr;
+  $('#business-name').textContent = 'NEXOCITA Barber Studio · Reserva tu corte o barba en pocos pasos.';
   $('#service').replaceChildren();
   DEFAULT_SERVICES.forEach(s => {
-    $('#service').append(new Option(`${s.name} · ${s.duration} min`, s.id));
+    $('#service').append(new Option(`${s.name} · ${s.duration} min${s.price ? ' (' + s.price + ')' : ''}`, s.id));
   });
   slots();
 }
@@ -806,17 +951,20 @@ async function startApp() {
       ]);
       const todayStr = new Date().toISOString().split('T')[0];
       const maxDate = new Date(Date.now() + 60 * 86400000).toISOString().split('T')[0];
-      const biz = cloudSettings?.business || 'NEXOCITA';
+      const biz = cloudSettings?.business || 'NEXOCITA Barber Studio';
       const svcs = (cloudSvcs && cloudSvcs.length)
         ? cloudSvcs.filter(s => s.active !== 0 && s.active !== false)
         : DEFAULT_SERVICES;
       config = { business: biz, today: todayStr, max_date: maxDate, services: svcs };
-      $('#business-name').textContent = `${biz} · Reserva en pocos pasos.`;
+      $('#business-name').textContent = `${biz} · Reserva tu corte o barba en pocos pasos.`;
       $('#date').min = todayStr;
       $('#date').max = maxDate;
       $('#date').value = todayStr;
       $('#service').replaceChildren();
-      svcs.forEach(s => $('#service').append(new Option(`${s.name} · ${s.duration} min`, s.id)));
+      svcs.forEach(s => {
+        const pr = s.price || DEFAULT_SERVICES.find(d => String(d.id) === String(s.id))?.price;
+        $('#service').append(new Option(`${s.name} · ${s.duration} min${pr ? ' (' + pr + ')' : ''}`, s.id));
+      });
       slots();
       return;
     } catch (e) {
@@ -831,12 +979,16 @@ async function startApp() {
     if (data && data.supabase && data.supabase.url && window.CloudDB && !window.CloudDB.isReady()) {
       window.CloudDB.init({ url: data.supabase.url, anonKey: data.supabase.anon_key });
     }
-    $('#business-name').textContent = `${data.business} · Reserva en pocos pasos.`;
+    const biz = data.business || 'NEXOCITA Barber Studio';
+    $('#business-name').textContent = `${biz} · Reserva tu corte o barba en pocos pasos.`;
     $('#date').min = data.today;
     $('#date').max = data.max_date;
     $('#date').value = data.today;
     $('#service').replaceChildren();
-    data.services.forEach(s => $('#service').append(new Option(`${s.name} · ${s.duration} min`, s.id)));
+    data.services.forEach(s => {
+      const pr = s.price || DEFAULT_SERVICES.find(d => String(d.id) === String(s.id))?.price;
+      $('#service').append(new Option(`${s.name} · ${s.duration} min${pr ? ' (' + pr + ')' : ''}`, s.id));
+    });
     if (!data.services.length) {
       setupFallback();
     } else {

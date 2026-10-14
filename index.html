@@ -2,33 +2,424 @@
 <html lang="es">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NEXOCITA — Tu tiempo, en orden.</title>
-<meta name="description" content="NEXOCITA: reserva citas y gestiona servicios, clientes y horarios de forma ágil y moderna.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%230071e3'/%3E%3Cpath d='M11 28V12l18 16V12' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="styles.css?v=20261012"><script src="app.js?v=20261012" defer></script><link rel="stylesheet" href="system.css?v=20261012"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="supabase-db.js"></script><script src="api-config.js" defer></script><script src="booking.js?v=20261012" defer></script>
+<title>NEXOCITA BARBER STUDIO — Reserva de Citas en Línea</title>
+<meta name="description" content="NEXOCITA Barber Studio: Reserva citas en línea para corte de cabello, fade, perfilado de barba y toalla caliente en Nicaragua. Tu horario puntual y garantizado.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%230f172a'/%3E%3Ctext x='50%25' y='65%25' font-size='22' text-anchor='middle' fill='%23ffffff' font-family='sans-serif'%3E✂%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css?v=20261013-barber"><script src="app.js?v=20261013-barber" defer></script><link rel="stylesheet" href="system.css?v=20261013-barber"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=20261013-sync"></script><script src="supabase-db.js?v=20261013-sync"></script><script src="api-config.js" defer></script><script src="booking.js?v=20261013-barber" defer></script>
 </head>
 <body>
 <a class="skip" href="#inicio">Saltar al contenido</a>
-<header><nav aria-label="Navegación principal"><a class="brand" href="#inicio"><span class="brand-icon">N</span>NEXOCITA<span class="brand-dot">.</span></a><div class="nav-links"><a href="#inicio" aria-current="page">Inicio</a><a href="#multimedia">Multimedia</a><a href="#galeria">Galería</a></div><a class="nav-cta" href="panel.html">Mi negocio</a></nav></header>
+<header><nav aria-label="Navegación principal"><a class="brand" href="#inicio"><span class="brand-icon">✂</span>NEXOCITA<span class="brand-badge">BARBER STUDIO</span></a><div class="nav-links"><a href="#inicio" aria-current="page">Inicio</a><a href="#servicios">Servicios</a><a href="#galeria">Galería</a><a href="#experiencia">Barbería</a><a href="#multimedia">Multimedia</a></div><a class="nav-cta" href="panel.html">Panel Negocio</a></nav></header>
 <main>
-<section class="booking-home" id="inicio"><div class="booking-heading"><p class="eyebrow">TU TIEMPO, EN ORDEN</p><h1>Tu próxima cita.<br><span>Así de simple.</span></h1><p id="business-name">Elige tu servicio y encuentra el momento ideal.</p><a class="text-link" href="panel.html">Acceso al panel del negocio</a></div>
-<div class="booking-card"><div class="booking-title"><h2>Reserva tu cita</h2><span>Hora de Nicaragua</span></div><form id="booking-form"><fieldset><legend>01 · Servicio y fecha</legend><div class="form-grid"><label>Servicio<select id="service" name="service" required><option value="">Cargando servicios…</option></select></label><label>Fecha<input type="date" id="date" name="date" required></label></div></fieldset><fieldset><legend>02 · Un horario para ti</legend><div id="slots" class="slots" role="group" aria-label="Horarios disponibles"><p>Elige un servicio y una fecha.</p></div><input id="selected-time" type="hidden" name="time"></fieldset><fieldset><legend>03 · Tus datos</legend><div class="form-grid"><label>Nombre completo<input name="name" autocomplete="name" minlength="2" maxlength="100" required></label><label>Teléfono<input name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" required></label></div><label>Correo electrónico <span class="optional">(opcional)</span><input name="email" type="email" autocomplete="email" maxlength="150"></label><label>Nota para el negocio <span class="optional">(opcional)</span><textarea name="notes" rows="2" maxlength="500"></textarea></label></fieldset><div class="booking-summary" id="booking-summary">Selecciona un horario para continuar.</div><p class="form-error" id="booking-error" role="alert"></p><button class="button full-button" id="confirm-booking" disabled>Confirmar reserva</button><p class="form-footnote">Tu cita se guarda en la agenda del negocio. No se envían mensajes ni correos automáticos.</p></form><div id="booking-success" hidden aria-live="polite"><div class="receipt-card"><div class="receipt-header"><div class="receipt-check">✓</div><div><span class="receipt-badge">Cita confirmada</span><p class="receipt-brand">NEXOCITA</p><p class="receipt-headline">¡Tu cita está lista!</p></div></div><div class="receipt-body"><div class="receipt-row" id="rr-service"><span class="receipt-icon">✂</span><div><span class="receipt-label">Servicio</span><strong id="rr-service-val"></strong></div></div><div class="receipt-row" id="rr-date"><span class="receipt-icon">📅</span><div><span class="receipt-label">Fecha y hora</span><strong id="rr-date-val"></strong></div></div><div class="receipt-row" id="rr-name"><span class="receipt-icon">👤</span><div><span class="receipt-label">Cliente</span><strong id="rr-name-val"></strong></div></div><div class="receipt-row" id="rr-phone"><span class="receipt-icon">📞</span><div><span class="receipt-label">Teléfono</span><strong id="rr-phone-val"></strong></div></div><div class="receipt-row" id="rr-duration"><span class="receipt-icon">⏱</span><div><span class="receipt-label">Duración</span><strong id="rr-duration-val"></strong></div></div></div><div class="receipt-codes"><p class="receipt-codes-title">🔑 Claves para gestionar tu cita</p><dl id="receipt-codes"><dt>Código de reserva</dt><dd id="rr-code"></dd><dt>Clave de consulta privada</dt><dd id="rr-token"></dd></dl></div><div class="receipt-actions"><button class="button receipt-dl-btn" id="download-receipt">⬇ Descargar comprobante</button><button class="secondary-button" id="print-receipt">🖨️ Imprimir / Guardar PDF</button><button class="secondary-button" id="new-booking">← Nueva reserva</button></div><p class="receipt-footnote">Presenta tu código al llegar. Puedes consultar o cancelar desde «¿Ya tienes una cita?».</p></div></div></div></section>
-<section class="manage-section"><details><summary>¿Ya tienes una cita? Consúltala o cancélala</summary><form id="lookup-form" class="form-grid"><label>Código de reserva<input name="id" required autocomplete="off"></label><label>Clave de consulta<input name="token" required autocomplete="off"></label><button class="secondary-button">Consultar cita</button></form><p id="lookup-error" class="form-error" role="alert"></p><div id="lookup-result" aria-live="polite"></div></details></section>
+<section class="booking-home" id="inicio">
+<div class="booking-heading">
+<p class="eyebrow">BARBERÍA PROFESIONAL · MANAGUA, NICARAGUA</p>
+<h1>Cortes con estilo.<br><span>Tu silla sin esperas.</span></h1>
+<p id="business-name">NEXOCITA Barber Studio · Elige tu corte o barba y reserva tu espacio en segundos.</p>
+<div class="hero-barber-badges">
+<span>✂ Cortes Clásicos & Fades</span>
+<span>💈 Toalla Caliente & Navaja</span>
+<span>⏱ Puntualidad Garantizada</span>
+<span>📍 Managua, Nicaragua</span>
+</div>
+<div class="hero-actions">
+<a class="button hero-btn" href="#servicios">Ver Servicios y Tarifas</a>
+<a class="text-link" href="panel.html">Acceso al panel del negocio →</a>
+</div>
+</div>
+<div class="booking-card">
+<div class="booking-title">
+<h2>Reserva tu cita de barbería</h2>
+<span>Hora de Nicaragua (UTC-6)</span>
+</div>
+<form id="booking-form">
+<fieldset>
+<legend>01 · Servicio de barbería y fecha</legend>
+<div class="form-grid">
+<label>Servicio de barbería
+<select id="service" name="service" required>
+<option value="">Cargando servicios de barbería…</option>
+</select>
+</label>
+<label>Fecha de la cita
+<input type="date" id="date" name="date" required>
+</label>
+</div>
+</fieldset>
+<fieldset>
+<legend>02 · Selecciona tu horario</legend>
+<div id="slots" class="slots" role="group" aria-label="Horarios disponibles">
+<p>Elige un servicio y una fecha para ver horarios disponibles.</p>
+</div>
+<input id="selected-time" type="hidden" name="time">
+</fieldset>
+<fieldset>
+<legend>03 · Datos del cliente</legend>
+<div class="form-grid">
+<label>Nombre y apellido completo
+<input name="name" id="client-name" autocomplete="name" minlength="3" maxlength="100" placeholder="Ej. Carlos Mendoza" required>
+<span class="field-help" id="name-feedback"></span>
+</label>
+<label>Número de teléfono (WhatsApp o llamadas)
+<input name="phone" id="client-phone" type="tel" autocomplete="tel" minlength="8" maxlength="18" placeholder="Ej. 8888-8888 o +505 8888-8888" required>
+<span class="field-help" id="phone-feedback"></span>
+</label>
+</div>
+<label>Correo electrónico <span class="optional">(opcional)</span>
+<input name="email" id="client-email" type="email" autocomplete="email" maxlength="150" placeholder="carlos@correo.com">
+<span class="field-help" id="email-feedback"></span>
+</label>
+<label>Estilo deseado o nota para el barbero <span class="optional">(opcional)</span>
+<textarea name="notes" id="client-notes" rows="2" maxlength="500" placeholder="Ej. Fade bajo con navaja, toalla caliente extra, barba perfilada"></textarea>
+</label>
+</fieldset>
+<div class="booking-summary" id="booking-summary">Selecciona un servicio, fecha y horario para continuar.</div>
+<p class="form-error" id="booking-error" role="alert"></p>
+<button class="button full-button" id="confirm-booking" disabled>Confirmar reserva de cita</button>
+<p class="form-footnote">Tu cita se guarda en la agenda oficial de NEXOCITA Barber Studio. Recibirás tu comprobante digital al instante.</p>
+</form>
+<div id="booking-success" hidden aria-live="polite">
+<div class="receipt-card">
+<div class="receipt-header">
+<div class="receipt-check">✓</div>
+<div>
+<span class="receipt-badge">Cita confirmada</span>
+<p class="receipt-brand">NEXOCITA BARBER STUDIO</p>
+<p class="receipt-headline">¡Tu cita de barbería está lista!</p>
+</div>
+</div>
+<div class="receipt-body">
+<div class="receipt-row" id="rr-service"><span class="receipt-icon">✂</span><div><span class="receipt-label">Servicio</span><strong id="rr-service-val"></strong></div></div>
+<div class="receipt-row" id="rr-date"><span class="receipt-icon">📅</span><div><span class="receipt-label">Fecha y hora</span><strong id="rr-date-val"></strong></div></div>
+<div class="receipt-row" id="rr-name"><span class="receipt-icon">👤</span><div><span class="receipt-label">Cliente</span><strong id="rr-name-val"></strong></div></div>
+<div class="receipt-row" id="rr-phone"><span class="receipt-icon">📞</span><div><span class="receipt-label">Teléfono</span><strong id="rr-phone-val"></strong></div></div>
+<div class="receipt-row" id="rr-duration"><span class="receipt-icon">⏱</span><div><span class="receipt-label">Duración</span><strong id="rr-duration-val"></strong></div></div>
+</div>
+<div class="receipt-codes">
+<p class="receipt-codes-title">🔑 Claves para gestionar tu cita</p>
+<dl id="receipt-codes">
+<dt>Código de reserva</dt><dd id="rr-code"></dd>
+<dt>Clave de consulta privada</dt><dd id="rr-token"></dd>
+</dl>
+</div>
+<div class="receipt-actions">
+<button class="button receipt-dl-btn" id="download-receipt">⬇ Descargar comprobante</button>
+<button class="secondary-button" id="print-receipt">🖨️ Imprimir / Guardar PDF</button>
+<button class="secondary-button" id="new-booking">← Nueva reserva</button>
+</div>
+<p class="receipt-footnote">Presenta tu código al llegar a la barbería. Puedes consultar o cancelar tu turno desde «¿Ya tienes una cita?».</p>
+</div>
+</div>
+</div>
+</section>
 
-<section class="section intro" id="multimedia"><div class="section-top"><div><p class="eyebrow">01 / EXPERIENCIA MULTIMEDIA</p><h2>Una idea.<br>Muchas formas de descubrirla.</h2></div><p>Texto, imagen, audio y video.<br>Explora cómo una agenda centralizada puede transformar el día a día de un negocio.</p></div><div class="media-types"><a href="#experiencia"><span class="type-icon">Aa</span><h3>Lee la idea.</h3><p>El problema, la propuesta y su impacto.</p><span class="small-link">Explorar contenido</span></a><a href="#galeria"><span class="type-icon">▧</span><h3>Visualiza el cambio.</h3><p>Una mirada al escritorio y al móvil.</p><span class="small-link">Abrir galería</span></a><a href="#audio"><span class="type-icon">≋</span><h3>Escucha la historia.</h3><p>La propuesta, contada en un minuto.</p><span class="small-link">Escuchar audio</span></a><a href="#video"><span class="type-icon">▷</span><h3>Mira cómo funciona.</h3><p>De elegir un servicio a confirmar una cita.</p><span class="small-link">Reproducir video</span></a></div></section>
-<section class="section exploration" id="experiencia"><p class="eyebrow">02 / EXPLORA POR CATEGORÍA</p><h2>Diferentes miradas.<br>Una misma conexión.</h2><div class="tabs" role="tablist" aria-label="Categorías multimedia"><button role="tab" aria-selected="true" aria-controls="category-panel" id="tab-cultura" data-category="cultura">Cultura</button><button role="tab" aria-selected="false" aria-controls="category-panel" id="tab-naturaleza" data-category="naturaleza" tabindex="-1">Naturaleza</button><button role="tab" aria-selected="false" aria-controls="category-panel" id="tab-tecnologia" data-category="tecnologia" tabindex="-1">Tecnología</button></div><div id="category-panel" class="category-panel" role="tabpanel" aria-labelledby="tab-cultura" tabindex="0"><div class="category-copy"><span class="pill" id="category-tag">CULTURA DEL SERVICIO</span><h3 id="category-title">Detrás de cada cita,<br>hay una persona.</h3><p id="category-text">Barberías, salones de belleza, clínicas, talleres, consultorios y profesionales independientes. Negocios distintos que comparten algo: el valor de atender bien.</p><div class="category-detail" id="category-detail">7 perfiles de negocio · Una agenda compartida</div></div><img id="category-image" src="assets/visual-6.jpg" alt="Comparación visual de la gestión manual y digital en una barbería" loading="lazy"></div></section>
-<section class="section flow"><div class="section-top"><div><p class="eyebrow">DEL PROBLEMA A LA SOLUCIÓN</p><h2>Menos fricción.<br>Más reservas.</h2></div><p>WhatsApp, llamadas y agendas físicas dispersan la información. NEXOCITA propone reunir reservas, clientes y horarios en un solo lugar.</p></div><ol class="steps"><li><span>01</span>Entra al sitio</li><li><span>02</span>Elige servicio</li><li><span>03</span>Elige fecha</li><li><span>04</span>Consulta horarios</li><li><span>05</span>Reserva tu cita</li><li><span>06</span>El sistema registra</li><li><span>07</span>El negocio la ve</li></ol><div class="benefits"><div><strong>Una sola plataforma.</strong><p>Reservas, clientes y horarios centralizados.</p></div><div><strong>Disponible 24/7.</strong><p>La propuesta permite reservar a cualquier hora.</p></div><div><strong>PC + teléfono.</strong><p>Una experiencia adaptable a cada pantalla.</p></div></div></section>
-<section class="gallery-section" id="galeria"><div class="section section-top"><div><p class="eyebrow">03 / GALERÍA MULTIMEDIA</p><h2>El futuro de tu agenda.<br>Desde todos los ángulos.</h2></div><p>Explora los seis recursos visuales de la propuesta.<br>Selecciona una imagen para ampliarla.</p></div><div class="gallery section">
-<button class="gallery-card wide" data-image="1" data-title="Una plataforma conectada"><img src="assets/visual-1.jpg" alt="Calendario de NEXOCITA en un portátil" loading="lazy"><span><small>01 / VISIÓN GENERAL</small><strong>Todo empieza con claridad.</strong></span><b aria-hidden="true">+</b></button>
-<button class="gallery-card" data-image="4" data-title="Reservar desde cualquier lugar"><img src="assets/visual-4.jpg" alt="Propuesta de reserva de citas en un teléfono" loading="lazy"><span><small>02 / EXPERIENCIA MÓVIL</small><strong>Tu agenda va contigo.</strong></span><b aria-hidden="true">+</b></button>
-<button class="gallery-card" data-image="2" data-title="El desafío de la gestión manual"><img src="assets/visual-2.jpg" alt="Agenda física, notas y teléfono sobre una mesa" loading="lazy"><span><small>03 / EL PUNTO DE PARTIDA</small><strong>De lo disperso a lo simple.</strong></span><b aria-hidden="true">+</b></button>
-<button class="gallery-card wide" data-image="5" data-title="Control total desde el escritorio"><img src="assets/visual-5.jpg" alt="Panel de escritorio con citas y gráficos" loading="lazy"><span><small>04 / PANEL DEL NEGOCIO</small><strong>La perspectiva que necesitas.</strong></span><b aria-hidden="true">+</b></button>
-<button class="gallery-card wide" data-image="6" data-title="Barbería: antes y después"><img src="assets/visual-6.jpg" alt="Dos escenas de una barbería antes y después de digitalizar sus citas" loading="lazy"><span><small>05 / IMPACTO REAL</small><strong>Más tiempo para las personas.</strong></span><b aria-hidden="true">+</b></button>
-<button class="gallery-card" data-image="3" data-title="Una vista operativa del negocio"><img src="assets/visual-3.jpg" alt="Monitor con resumen de calendario, clientes y métricas" loading="lazy"><span><small>06 / INFORMACIÓN CENTRALIZADA</small><strong>Decide con una visión completa.</strong></span><b aria-hidden="true">+</b></button>
-</div><p class="gallery-note">Imágenes conceptuales extraídas de la presentación del proyecto.</p></section>
-<section class="section audio-section" id="audio"><div><p class="eyebrow">04 / AUDIO INTERACTIVO</p><h2>La idea también<br>se escucha.</h2><p>Conoce el problema, la solución y el recorrido de una reserva.</p><details><summary>Leer transcripción</summary><p>NEXOCITA es una propuesta de sistema web de gestión de citas para pequeños negocios. Hoy, los mensajes, las llamadas y las agendas físicas fragmentan la información. Esto puede causar citas duplicadas, horarios confusos y tiempo perdido. Nuestra propuesta reúne reservas, clientes y horarios en una sola plataforma. El cliente entra al sitio, selecciona un servicio, elige una fecha, consulta los horarios y reserva. El sistema registra la cita y el negocio la visualiza. Desde una barbería hasta un consultorio, la meta es la misma: más organización, menos errores y una mejor experiencia. NEXOCITA. Tu tiempo, en orden.</p></details></div><div class="audio-card"><span class="pill">LA PROPUESTA, EN VOZ</span><div class="waveform" aria-hidden="true"></div><h3>Una agenda. Una nueva experiencia.</h3><p>Presentación de NEXOCITA · Narración sintética en español</p><audio controls preload="metadata" src="assets/narracion.wav">Tu navegador no admite audio HTML5. <a href="assets/narracion.wav">Descargar narración</a></audio></div></section>
-<section class="video-section" id="video"><div class="section"><p class="eyebrow">05 / VIDEO MULTIMEDIA</p><h2>De una gestión manual.<br>A una experiencia digital.</h2><p>Un recorrido visual por la propuesta NEXOCITA.</p><video controls playsinline preload="metadata" poster="assets/visual-5.jpg"><source src="assets/presentacion.webm" type="video/webm"><track kind="captions" src="assets/subtitulos.vtt" srclang="es" label="Español" default>Tu navegador no admite video HTML5.</video><p class="video-note">Presentación visual · 30 segundos · Activa los subtítulos para seguir el recorrido.</p></div></section>
-<section class="section future"><div><p class="eyebrow">UNA BASE PARA LO QUE SIGUE</p><h2>Pensado para crecer.</h2><p>La propuesta contempla una interfaz adaptable, una API centralizada y una base de datos. Las siguientes capacidades forman parte de la hoja de ruta.</p></div><div class="roadmap"><span>App móvil</span><span>Email + SMS</span><span>Pagos en línea</span><span>Reportes avanzados</span><span>Multiempleado</span><span>Google Calendar</span><span>Calificaciones</span><span>IA aplicada</span></div></section>
-</main><footer><a class="brand" href="#inicio">NEXOCITA<span class="brand-dot">.</span></a><p>© 2026 NEXOCITA. Tu tiempo, en orden.</p><a href="#inicio">Volver al inicio</a></footer>
-<dialog id="lightbox" aria-labelledby="lightbox-title"><button class="close-dialog" aria-label="Cerrar imagen">×</button><img id="lightbox-image" alt=""><div class="lightbox-bottom"><button id="previous-image" aria-label="Imagen anterior">Anterior</button><p id="lightbox-title"></p><button id="next-image" aria-label="Imagen siguiente">Siguiente</button></div></dialog>
-</body></html>
+<section class="manage-section">
+<details>
+<summary>¿Ya tienes una cita? Consúltala o cancélala</summary>
+<form id="lookup-form" class="form-grid">
+<label>Código de reserva<input name="id" required autocomplete="off" placeholder="Ej. NC-XXXXX"></label>
+<label>Clave de consulta<input name="token" required autocomplete="off" placeholder="Clave privada del comprobante"></label>
+<button class="secondary-button">Consultar cita</button>
+</form>
+<p id="lookup-error" class="form-error" role="alert"></p>
+<div id="lookup-result" aria-live="polite"></div>
+</details>
+</section>
+
+<!-- Catálogo de Servicios y Cortes de Barbería -->
+<section class="services-section" id="servicios">
+<div class="section-header">
+<div>
+<p class="eyebrow">01 / CATÁLOGO DE SERVICIOS</p>
+<h2>Cortes, barbas y rituales masculinos.<br>Elige tu estilo.</h2>
+</div>
+<p>Conoce las especialidades de nuestra barbería. Haz clic en <strong>«Reservar este servicio»</strong> para agendar tu horario directamente.</p>
+</div>
+<div class="services-grid">
+<div class="service-card featured">
+<span class="service-badge-popular">Más pedido</span>
+<div class="service-card-top">
+<div class="service-icon-box">✂</div>
+<div class="service-pricing"><span class="service-price">C$ 200</span><span class="service-dur">· 30 min</span></div>
+</div>
+<h3>Corte Clásico & Fade Moderno</h3>
+<p>Degradado personalizado (Low, Mid, High Fade o Clásico), técnica de tijera o máquina, lavado con champú mentolado y acabado con pomada mate.</p>
+<ul class="service-features">
+<li><span>✓</span> Degradado a navaja o shaver</li>
+<li><span>✓</span> Asesoría de estilo y visagismo</li>
+<li><span>✓</span> Lavado y peinado con fijador premium</li>
+</ul>
+<button type="button" class="service-card-btn" onclick="selectBarberService('2')">Reservar este corte →</button>
+</div>
+
+<div class="service-card">
+<div class="service-card-top">
+<div class="service-icon-box">🧔</div>
+<div class="service-pricing"><span class="service-price">C$ 150</span><span class="service-dur">· 20 min</span></div>
+</div>
+<h3>Perfilado de Barba & Toalla Caliente</h3>
+<p>Delineado simétrico a navaja, reducción y rebajado de volumen, toalla al vapor con eucalipto y aplicación de aceite balsámico hidratante.</p>
+<ul class="service-features">
+<li><span>✓</span> Delineado de precisión a navaja</li>
+<li><span>✓</span> Ritual de toalla al vapor</li>
+<li><span>✓</span> Aceites aromáticos e hidratación</li>
+</ul>
+<button type="button" class="service-card-btn" onclick="selectBarberService('1')">Reservar perfilado de barba →</button>
+</div>
+
+<div class="service-card featured">
+<span class="service-badge-popular">Experiencia VIP</span>
+<div class="service-card-top">
+<div class="service-icon-box">👑</div>
+<div class="service-pricing"><span class="service-price">C$ 320</span><span class="service-dur">· 50 min</span></div>
+</div>
+<h3>Combo VIP: Corte + Barba + Toalla</h3>
+<p>Nuestra experiencia estelar: corte completo con fade, diseño y perfilado de barba a navaja, doble toalla caliente y exfoliación facial revitalizante.</p>
+<ul class="service-features">
+<li><span>✓</span> Corte completo + Fade impecable</li>
+<li><span>✓</span> Arreglo integral de barba</li>
+<li><span>✓</span> Mascarilla exfoliante y toalla tibia</li>
+</ul>
+<button type="button" class="service-card-btn" onclick="selectBarberService('3')">Reservar Combo VIP →</button>
+</div>
+
+<div class="service-card">
+<div class="service-card-top">
+<div class="service-icon-box">🪒</div>
+<div class="service-pricing"><span class="service-price">C$ 180</span><span class="service-dur">· 35 min</span></div>
+</div>
+<h3>Afeitado Clásico Tradicional</h3>
+<p>Ritual de afeitado al ras de la vieja escuela. Brocha de cerdas naturales, espuma tibia batida, navaja de hoja nueva esterilizada y aftershave refrescante.</p>
+<ul class="service-features">
+<li><span>✓</span> Espuma tibia y brocha tradicional</li>
+<li><span>✓</span> Navaja desechable esterilizada</li>
+<li><span>✓</span> Masaje con loción calmante</li>
+</ul>
+<button type="button" class="service-card-btn" onclick="selectBarberService('4')">Reservar afeitado clásico →</button>
+</div>
+
+<div class="service-card">
+<div class="service-card-top">
+<div class="service-icon-box">⚡</div>
+<div class="service-pricing"><span class="service-price">C$ 120</span><span class="service-dur">· 25 min</span></div>
+</div>
+<h3>Diseño de Líneas & Freestyle</h3>
+<p>Arte capilar con líneas geométricas, grecas o dibujos freestyle personalizados con trimmer y navaja de precisión para destacar tu corte.</p>
+<ul class="service-features">
+<li><span>✓</span> Diseños geométricos o artísticos</li>
+<li><span>✓</span> Delineado milimétrico de bordes</li>
+<li><span>✓</span> Tinte o fijación temporal opcional</li>
+</ul>
+<button type="button" class="service-card-btn" onclick="selectBarberService('5')">Reservar diseño de líneas →</button>
+</div>
+
+<div class="service-card">
+<div class="service-card-top">
+<div class="service-icon-box">🧴</div>
+<div class="service-pricing"><span class="service-price">C$ 160</span><span class="service-dur">· 30 min</span></div>
+</div>
+<h3>Tratamiento Capilar & Lavado Barbero</h3>
+<p>Exfoliación capilar para retirar impurezas, masaje craneal estimulante, tónico fortalecedor anticaída y secado profesional con volumen.</p>
+<ul class="service-features">
+<li><span>✓</span> Masaje capilar revitalizante</li>
+<li><span>✓</span> Tónico refrescante mentolado</li>
+<li><span>✓</span> Peinado y texturizado profesional</li>
+</ul>
+<button type="button" class="service-card-btn" onclick="selectBarberService('6')">Reservar tratamiento capilar →</button>
+</div>
+</div>
+
+<div class="barber-info-strip">
+<div class="barber-info-item">
+<span class="barber-info-icon">📍</span>
+<div><strong>Ubicación</strong><span>Managua, Nicaragua</span></div>
+</div>
+<div class="barber-info-item">
+<span class="barber-info-icon">🕒</span>
+<div><strong>Horario de Atención</strong><span>Lun – Sáb: 9:00 AM – 7:00 PM</span></div>
+</div>
+<div class="barber-info-item">
+<span class="barber-info-icon">✂</span>
+<div><strong>Maestros Barberos</strong><span>Profesionales certificados</span></div>
+</div>
+<div class="barber-info-item">
+<span class="barber-info-icon">⏱</span>
+<div><strong>Sin Esperas</strong><span>Reserva tu turno 24/7 en línea</span></div>
+</div>
+</div>
+</section>
+
+<!-- Galería de Trabajos Reales de Barbería -->
+<section class="gallery-section" id="galeria">
+<div class="section section-top">
+<div>
+<p class="eyebrow">02 / GALERÍA DE TRABAJOS REALES</p>
+<h2>Estilos que definen tu imagen.<br>La precisión en cada corte.</h2>
+</div>
+<p>Observa los resultados reales de nuestros trabajos de barbería: degradados skin fade, afeitados tradicionales y diseño de barbas. Haz clic en cualquier imagen para ampliarla.</p>
+</div>
+<div class="gallery section">
+<button class="gallery-card wide" data-image="1" data-title="Low Skin Fade con Textura Urbana Superior">
+<img src="assets/barber-1.jpg?v=2" alt="Corte de cabello masculino con degradado skin fade limpio y textura superior" loading="lazy">
+<span><small>01 / CORTE DE CABELLO</small><strong>Low Skin Fade & Textura Urbana</strong></span>
+<b aria-hidden="true">+</b>
+</button>
+<button class="gallery-card" data-image="2" data-title="Perfilado y Esculpido de Barba a Navaja">
+<img src="assets/barber-2.jpg?v=2" alt="Perfilado simétrico de barba y bigote con tratamiento de aceites" loading="lazy">
+<span><small>02 / CUIDADO DE BARBA</small><strong>Perfilado de Barba & Estilo</strong></span>
+<b aria-hidden="true">+</b>
+</button>
+<button class="gallery-card" data-image="3" data-title="Corte Clásico Pompadour con Taper Fade">
+<img src="assets/barber-3.jpg?v=2" alt="Estilo pompadour clásico para caballero con acabado mate" loading="lazy">
+<span><small>03 / ESTILO CLÁSICO</small><strong>Pompadour Ejecutivo & Taper</strong></span>
+<b aria-hidden="true">+</b>
+</button>
+<button class="gallery-card wide" data-image="4" data-title="Ritual Tradicional de Afeitado al Ras a Navaja">
+<img src="assets/barber-4.jpg?v=2" alt="Afeitado clásico tradicional con navaja y espuma caliente" loading="lazy">
+<span><small>04 / AFEITADO AL RAS</small><strong>Afeitado Clásico & Espuma Tibia</strong></span>
+<b aria-hidden="true">+</b>
+</button>
+<button class="gallery-card" data-image="5" data-title="French Crop Texturizado con High Skin Fade">
+<img src="assets/barber-5.jpg?v=2" alt="Corte moderno french crop texturizado con degradado alto" loading="lazy">
+<span><small>05 / CORTE URBANO</small><strong>Textured French Crop & Fade</strong></span>
+<b aria-hidden="true">+</b>
+</button>
+<button class="gallery-card wide" data-image="6" data-title="Experiencia VIP Barbero con Toalla al Vapor">
+<img src="assets/barber-6.jpg?v=2" alt="Barbero profesional realizando servicio integral de corte y toalla al vapor" loading="lazy">
+<span><small>06 / EXPERIENCIA VIP</small><strong>Ritual VIP Integral & Toalla al Vapor</strong></span>
+<b aria-hidden="true">+</b>
+</button>
+</div>
+<p class="gallery-note">Fotografías reales del portfolio de servicios de NEXOCITA Barber Studio.</p>
+</section>
+
+<!-- La Experiencia en la Barbería -->
+<section class="section exploration" id="experiencia">
+<p class="eyebrow">03 / LA EXPERIENCIA EN EL SILLÓN</p>
+<h2>Tradición, estilo e innovación.<br>Una experiencia pensada para ti.</h2>
+<div class="tabs" role="tablist" aria-label="Categorías de barbería">
+<button role="tab" aria-selected="true" aria-controls="category-panel" id="tab-cultura" data-category="cultura">Tradición</button>
+<button role="tab" aria-selected="false" aria-controls="category-panel" id="tab-naturaleza" data-category="naturaleza" tabindex="-1">Cuidado</button>
+<button role="tab" aria-selected="false" aria-controls="category-panel" id="tab-tecnologia" data-category="tecnologia" tabindex="-1">Tu Cita Online</button>
+</div>
+<div id="category-panel" class="category-panel" role="tabpanel" aria-labelledby="tab-cultura" tabindex="0">
+<div class="category-copy">
+<span class="pill" id="category-tag">CULTURA & TRADICIÓN BARBERA</span>
+<h3 id="category-title">El arte del barbero,<br>la precisión del corte.</h3>
+<p id="category-text">En NEXOCITA Barber Studio fusionamos la artesanía tradicional de la toalla caliente y navaja de barbero con los cortes modernos más exigentes. Cada detalle cuenta.</p>
+<div class="category-detail" id="category-detail">Maestros barberos · Navaja de afeitar · Toalla al vapor</div>
+</div>
+<img id="category-image" src="assets/barber-6.jpg" alt="Barbero profesional realizando corte de precisión con tijera y toalla al vapor" loading="lazy">
+</div>
+</section>
+
+<section class="section flow">
+<div class="section-top">
+<div>
+<p class="eyebrow">CERO FILAS NI ESPERAS</p>
+<h2>Tu turno garantizado.<br>Así de simple.</h2>
+</div>
+<p>Olvídate de llegar a la barbería y esperar horas tu turno. Con NEXOCITA seleccionas tu barbero, fecha y hora desde tu celular o computadora.</p>
+</div>
+<ol class="steps">
+<li><span>01</span>Elige servicio</li>
+<li><span>02</span>Selecciona fecha</li>
+<li><span>03</span>Revisa horarios</li>
+<li><span>04</span>Ingresa tus datos</li>
+<li><span>05</span>Confirma cita</li>
+<li><span>06</span>Comprobante listo</li>
+<li><span>07</span>¡Tu silla te espera!</li>
+</ol>
+<div class="benefits">
+<div><strong>Puntualidad total.</strong><p>Llegas a la hora de tu cita y tu barbero está preparado para ti.</p></div>
+<div><strong>Reservas 24/7.</strong><p>Agenda a cualquier hora del día sin necesidad de llamar.</p></div>
+<div><strong>Gestión privada.</strong><p>Consulta o reprograma tu cita fácilmente con tu código de reserva.</p></div>
+</div>
+</section>
+
+<!-- Sección Multimedia -->
+<section class="section intro" id="multimedia">
+<div class="section-top">
+<div>
+<p class="eyebrow">04 / EXPERIENCIA MULTIMEDIA</p>
+<h2>Descubre el concepto NEXOCITA.<br>En audio y video.</h2>
+</div>
+<p>Conoce la propuesta de digitalización que transforma la experiencia de agendar en una barbería moderna.</p>
+</div>
+<div class="media-types">
+<a href="#servicios"><span class="type-icon">✂</span><h3>Mira los servicios.</h3><p>Cortes, fades, barbas y rituales.</p><span class="small-link">Ver catálogo</span></a>
+<a href="#galeria"><span class="type-icon">▧</span><h3>Explora los trabajos.</h3><p>Resultados reales en alta resolución.</p><span class="small-link">Abrir galería</span></a>
+<a href="#audio"><span class="type-icon">≋</span><h3>Escucha la propuesta.</h3><p>La historia de NEXOCITA en un minuto.</p><span class="small-link">Escuchar audio</span></a>
+<a href="#video"><span class="type-icon">▷</span><h3>Mira cómo funciona.</h3><p>El recorrido completo de una reserva.</p><span class="small-link">Reproducir video</span></a>
+</div>
+</section>
+
+<section class="section audio-section" id="audio">
+<div>
+<p class="eyebrow">AUDIO INTERACTIVO</p>
+<h2>La propuesta también<br>se escucha.</h2>
+<p>Conoce cómo NEXOCITA elimina el desorden de las libretas y mensajes dispersos en la barbería.</p>
+<details>
+<summary>Leer transcripción del audio</summary>
+<p>NEXOCITA es una propuesta de sistema web de gestión de citas para pequeños negocios y barberías. Hoy, los mensajes, las llamadas y las libretas físicas fragmentan la información, causando clientes esperando y tiempo perdido. Nuestra propuesta reúne reservas, clientes y horarios en una sola plataforma. El cliente selecciona su corte o perfilado de barba, elige una fecha, consulta los horarios disponibles y reserva su espacio. El sistema registra la cita y la barbería la visualiza en su agenda oficial. NEXOCITA: Tu tiempo y tu estilo, en orden.</p>
+</details>
+</div>
+<div class="audio-card">
+<span class="pill">NARRACIÓN OFICIAL</span>
+<div class="waveform" aria-hidden="true"></div>
+<h3>Una agenda. Una nueva experiencia.</h3>
+<p>Presentación de NEXOCITA · Audio explicativo</p>
+<audio controls preload="metadata" src="assets/narracion.wav">Tu navegador no admite audio HTML5. <a href="assets/narracion.wav">Descargar narración</a></audio>
+</div>
+</section>
+
+<section class="video-section" id="video">
+<div class="section">
+<p class="eyebrow">DEMOSTRACIÓN EN VIDEO</p>
+<h2>De la libreta de papel.<br>A la agenda digital de barbería.</h2>
+<p>Un recorrido visual por el sistema oficial de citas NEXOCITA.</p>
+<video controls playsinline preload="metadata" poster="assets/barber-6.jpg">
+<source src="assets/presentacion.webm" type="video/webm">
+<track kind="captions" src="assets/subtitulos.vtt" srclang="es" label="Español" default>
+Tu navegador no admite video HTML5.
+</video>
+<p class="video-note">Presentación visual · 30 segundos · Activa los subtítulos para seguir el recorrido.</p>
+</div>
+</section>
+
+<section class="section future">
+<div>
+<p class="eyebrow">PROYECCIÓN TECNOLÓGICA</p>
+<h2>Diseñado para el crecimiento de la barbería.</h2>
+<p>La plataforma NEXOCITA cuenta con sincronización en la nube, control administrativo, gestión de clientes y arquitectura modular lista para incorporar nuevas funciones.</p>
+</div>
+<div class="roadmap">
+<span>Recordatorios por WhatsApp</span>
+<span>Pagos en línea</span>
+<span>Selección de Barbero</span>
+<span>Historial de Cortes</span>
+<span>Google Calendar Sync</span>
+<span>Calificación de Servicios</span>
+<span>Club de Fidelidad</span>
+<span>App Móvil PWA</span>
+</div>
+</section>
+</main>
+
+<footer>
+<a class="brand" href="#inicio"><span class="brand-icon">✂</span>NEXOCITA<span class="brand-badge">BARBERSHOP</span></a>
+<p>© 2026 NEXOCITA Barber Studio. Tu tiempo y tu estilo, en orden.</p>
+<a href="#inicio">Volver al inicio ↑</a>
+</footer>
+
+<dialog id="lightbox" aria-labelledby="lightbox-title">
+<button class="close-dialog" aria-label="Cerrar imagen">×</button>
+<img id="lightbox-image" alt="">
+<div class="lightbox-bottom">
+<button id="previous-image" aria-label="Imagen anterior">← Anterior</button>
+<p id="lightbox-title"></p>
+<button id="next-image" aria-label="Imagen siguiente">Siguiente →</button>
+</div>
+</dialog>
+</body>
+</html>
