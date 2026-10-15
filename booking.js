@@ -856,25 +856,30 @@ async function lookup(cancel = false) {
   const payload = Object.fromEntries(new FormData($('#lookup-form')));
   if (cancel) payload.cancel = true;
 
+  // Auto-recuperar token guardado si el usuario no lo ingresó
+  if (!payload.token && payload.id) {
+    const stored = getStoredAppointments().find(x => x.appointment && x.appointment.id?.toUpperCase() === payload.id.trim().toUpperCase());
+    if (stored && stored.token) payload.token = stored.token;
+  }
+
   // 1. CloudDB si está activo
   if (window.CloudDB && window.CloudDB.isReady()) {
     try {
       if (cancel) {
-        const verified = await window.CloudDB.lookupAppointment(payload.id, payload.token);
-        if (!verified) throw new Error('Código o clave incorrectos.');
-        await window.CloudDB.cancelAppointment(payload.id, payload.token);
-        updateStoredAppointment(payload.id, payload.token, 'cancelled');
-        const updated = await window.CloudDB.lookupAppointment(payload.id, payload.token);
-        if (updated) renderLookupCard(updated);
-        slots();
+        await cancelAppointmentByCode(payload.id);
         return;
       }
-      const found = await window.CloudDB.lookupAppointment(payload.id, payload.token);
+      let found = null;
+      if (payload.token) {
+        found = await window.CloudDB.lookupAppointment(payload.id, payload.token);
+      } else if (typeof window.CloudDB.lookupAppointmentByCode === 'function') {
+        found = await window.CloudDB.lookupAppointmentByCode(payload.id);
+      }
       if (found) {
         renderLookupCard(found);
       } else {
         $('#lookup-result').replaceChildren();
-        $('#lookup-error').textContent = 'No se encontró una cita con ese código y clave.';
+        $('#lookup-error').textContent = payload.token ? 'No se encontró una cita con ese código y clave.' : 'Ingresa tu clave de consulta para ver los detalles, o pulsa «Eliminar reservación».';
       }
       return;
     } catch (e) {
@@ -904,6 +909,91 @@ async function lookup(cancel = false) {
   }
 }
 
+async function cancelAppointmentByCode(id) {
+  const cleanId = (id || '').trim();
+  if (!cleanId) throw new Error('Ingresa un código de reserva válido.');
+
+  const tokenInput = document.getElementById('lookup-token');
+  let token = (tokenInput?.value || '').trim();
+  if (!token) {
+    const stored = getStoredAppointments().find(x => x.appointment && x.appointment.id?.toUpperCase() === cleanId.toUpperCase());
+    if (stored && stored.token) token = stored.token;
+  }
+
+  let success = false;
+  let lastErr = null;
+
+  // 1. CloudDB (Supabase)
+  if (window.CloudDB && window.CloudDB.isReady()) {
+    if (token) {
+      try {
+        await window.CloudDB.cancelAppointment(cleanId, token);
+        success = true;
+      } catch (e) { lastErr = e; }
+    }
+    if (!success && typeof window.CloudDB.cancelAppointmentByCode === 'function') {
+      try {
+        await window.CloudDB.cancelAppointmentByCode(cleanId);
+        success = true;
+      } catch (e) { lastErr = e; }
+    }
+    if (!success) {
+      try {
+        await window.CloudDB.deleteAppointment(cleanId);
+        success = true;
+      } catch (e) { lastErr = e; }
+    }
+
+    if (!success) {
+      throw lastErr || new Error('No se encontró una cita activa con el código #' + cleanId);
+    }
+
+    updateStoredAppointment(cleanId, token, 'cancelled');
+    slots();
+    showCancelSuccess(cleanId);
+    return;
+  }
+
+  // 2. Modo Offline
+  if (isOfflineMode) {
+    const list = getStoredAppointments();
+    const item = list.find(x => x.appointment && x.appointment.id?.toUpperCase() === cleanId.toUpperCase());
+    if (item) {
+      item.appointment.status = 'cancelled';
+      try { localStorage.setItem('nexocita_appointments', JSON.stringify(list)); } catch {}
+      slots();
+      showCancelSuccess(cleanId);
+      return;
+    }
+    throw new Error('No se encontró una cita con el código #' + cleanId + ' en este dispositivo.');
+  }
+
+  // 3. API backend servidor local
+  try {
+    await api('my-appointment', { id: cleanId, token, cancel: true });
+    slots();
+    showCancelSuccess(cleanId);
+  } catch (e) {
+    throw new Error(e.message || 'Error al eliminar la reservación.');
+  }
+}
+
+function showCancelSuccess(id) {
+  $('#lookup-error').textContent = '';
+  const resultDiv = $('#lookup-result');
+  resultDiv.innerHTML = `
+    <div class="lookup-card" style="border-left: 4px solid #16a34a; background: var(--surface-raised, #ffffff); padding: 16px; border-radius: 8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:1.3em;">✅</span>
+        <strong style="color:#16a34a;font-size:1.05em;">Reservación eliminada exitosamente</strong>
+      </div>
+      <p style="margin:0;color:var(--ink-secondary,#475569);font-size:0.95em;">
+        Tu cita con código <strong>#${id}</strong> ha sido cancelada y el horario ha quedado libre.
+      </p>
+    </div>
+  `;
+}
+
 function renderLookupCard(a) {
   const card = document.createElement('div');
   card.className = 'lookup-card';
@@ -929,7 +1019,7 @@ function renderLookupCard(a) {
     b.style.marginTop = '12px';
     b.onclick = () => {
       if (confirm(`¿Cancelar la cita del ${format(a.date)} a las ${a.time}?\nEsta acción libera el horario y no se puede deshacer.`)) {
-        lookup(true);
+        cancelAppointmentByCode(a.id);
       }
     };
     card.append(b);
@@ -952,6 +1042,39 @@ $('#lookup-form').onsubmit = e => {
   e.preventDefault();
   lookup();
 };
+
+const cancelBtnEl = document.getElementById('lookup-cancel-btn');
+if (cancelBtnEl) {
+  cancelBtnEl.onclick = async () => {
+    const idInput = document.getElementById('lookup-id') || document.querySelector('#lookup-form [name="id"]');
+    const id = (idInput?.value || '').trim();
+    if (!id) {
+      $('#lookup-error').textContent = 'Por favor ingresa tu código de reserva (ej. NC-XXXXX).';
+      idInput?.focus();
+      return;
+    }
+
+    if (!confirm(`¿Estás seguro de que deseas eliminar la reservación con código #${id}?\nEsta acción liberará el horario de inmediato.`)) {
+      return;
+    }
+
+    cancelBtnEl.disabled = true;
+    cancelBtnEl.textContent = 'Eliminando...';
+    $('#lookup-error').textContent = '';
+
+    try {
+      await cancelAppointmentByCode(id);
+    } catch (err) {
+      $('#lookup-error').textContent = err.message || 'Error al eliminar la reservación.';
+    } finally {
+      cancelBtnEl.disabled = false;
+      cancelBtnEl.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        Eliminar reservación
+      `;
+    }
+  };
+}
 
 function setupFallback() {
   isOfflineMode = true;

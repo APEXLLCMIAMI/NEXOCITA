@@ -44,6 +44,19 @@ const CloudDB = (() => {
     },
     async lookupAppointment(id,token) { return rpc('nexocita_lookup',{p_id:id,p_token:token}); },
     async cancelAppointment(id,token) { return rpc('nexocita_cancel',{p_id:id,p_token:token}); },
+    async cancelAppointmentByCode(id) {
+      try {
+        return await rpc('nexocita_cancel_by_code', { p_id: id });
+      } catch (e) {
+        ready();
+        const delRes = await client.from('appointments').delete().eq('id', id);
+        if (delRes.error) {
+          const updRes = await client.from('appointments').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', id);
+          if (updRes.error) throw new Error('No se pudo cancelar la cita: ' + (delRes.error.message || e.message));
+        }
+        return true;
+      }
+    },
     async updateAppointment(id,updates) {
       ready(); const rows=await result(client.from('appointments').update({...updates,updated_at:new Date().toISOString()}).eq('id',id).select('id'));
       if(rows.length!==1) throw Error('No se guardó el cambio. Comprueba tu sesión.'); return true;

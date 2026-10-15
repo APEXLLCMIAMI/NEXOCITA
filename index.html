@@ -114,12 +114,18 @@
 </section>
 
 <section class="manage-section">
-<details>
-<summary>Ya tienes una cita — Consúltala o cancélala</summary>
+<details open>
+<summary>¿Ya tienes una cita? Consúltala o elimina tu reservación</summary>
 <form id="lookup-form" class="form-grid">
-<label>Código de reserva<input name="id" required autocomplete="off" placeholder="Ej. NC-XXXXX"></label>
-<label>Clave de consulta<input name="token" required autocomplete="off" placeholder="Clave privada del comprobante"></label>
-<button class="secondary-button">Consultar cita</button>
+<label>Código de reserva<input name="id" id="lookup-id" required autocomplete="off" placeholder="Ej. NC-XXXXX"></label>
+<label>Clave de consulta <span class="optional" style="font-weight:normal;opacity:0.7;">(opcional)</span><input name="token" id="lookup-token" autocomplete="off" placeholder="Clave privada del comprobante"></label>
+<div style="grid-column: 1 / -1; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 6px;">
+<button type="submit" class="secondary-button" id="lookup-submit-btn">Consultar cita</button>
+<button type="button" class="danger-button" id="lookup-cancel-btn" style="background:#dc2626;color:#ffffff;border:none;padding:10px 18px;border-radius:var(--r-md,8px);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+Eliminar reservación
+</button>
+</div>
 </form>
 <p id="lookup-error" class="form-error" role="alert"></p>
 <div id="lookup-result" aria-live="polite"></div>

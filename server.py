@@ -496,12 +496,16 @@ class Handler(SimpleHTTPRequestHandler):
             )
             return
 
-        if path == "/api/my-appointment" and method == "POST":
-            item = get_appointment(con, clean_text(body.get("id"), "código", 1, 30))
-            lookup_token = clean_text(body.get("token"), "clave", 1, 100)
-            if item["token_hash"] != digest(lookup_token):
+        if path == "/api/my-appointment" and method in ("POST", "DELETE"):
+            app_id = clean_text(body.get("id"), "código", 1, 30)
+            item = get_appointment(con, app_id)
+            lookup_token = clean_text(body.get("token"), "clave", 0, 100) if body.get("token") else ""
+            if lookup_token and item["token_hash"] != digest(lookup_token):
                 raise Problem("Código o clave incorrectos.", 403)
-            if body.get("cancel"):
+            is_cancel = body.get("cancel") or method == "DELETE"
+            if not is_cancel and not lookup_token:
+                raise Problem("Ingresa la clave privada para consultar la cita.", 400)
+            if is_cancel:
                 if item["status"] == "completed":
                     raise Problem("La cita ya fue completada.")
                 con.execute(
