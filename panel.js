@@ -345,6 +345,31 @@ function renderAppointments() {
         }, 'danger-button')
       );
     }
+    if (a.status === 'cancelled') {
+      actions.append(
+        button('Eliminar permanentemente', () => {
+          if (confirm(`¿Eliminar definitivamente la cita de ${a.name}?\nEsta acción no se puede deshacer.`)) {
+            if (confirm(`Confirmación final: ¿borrar la cita #${a.id} de ${a.name} (${a.date} ${a.time})?`)) {
+              action(async () => {
+                if (window.CloudDB && window.CloudDB.isReady()) {
+                  await window.CloudDB.deleteAppointment(a.id);
+                  const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
+                  localStorage.setItem('nexocita_appointments', JSON.stringify(raw.filter(x => !(x.appointment && x.appointment.id === a.id))));
+                  await load(); toast('Cita eliminada de la nube.'); return;
+                }
+                if (isOffline) {
+                  const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
+                  localStorage.setItem('nexocita_appointments', JSON.stringify(raw.filter(x => !(x.appointment && x.appointment.id === a.id))));
+                  await load(); toast('Cita eliminada.'); return;
+                }
+                await api('admin/appointment', { id: a.id }, 'DELETE');
+                await load(); toast('Cita eliminada permanentemente.');
+              });
+            }
+          }
+        }, 'danger-button')
+      );
+    }
     row.append(actions);
     $('#appointments').append(row);
   });

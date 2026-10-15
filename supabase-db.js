@@ -48,6 +48,9 @@ const CloudDB = (() => {
       ready(); const rows=await result(client.from('appointments').update({...updates,updated_at:new Date().toISOString()}).eq('id',id).select('id'));
       if(rows.length!==1) throw Error('No se guardó el cambio. Comprueba tu sesión.'); return true;
     },
+    async deleteAppointment(id) {
+      ready(); await result(client.from('appointments').delete().eq('id',id)); return true;
+    },
     onAppointmentsChange() {}, // El panel consulta cada 15 segundos, incluso sin Realtime.
     async getServices() { ready(); return result(client.from('services').select('*').order('id')); },
     async saveServices(services) {
