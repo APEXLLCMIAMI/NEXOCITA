@@ -487,7 +487,33 @@ function renderClients() {
         $('#status-filter').value = '';
         selectView('agenda');
         renderAppointments();
-      })
+      }),
+      button('Eliminar cliente', () => {
+        if (confirm(`¿Eliminar a ${c.name} y TODAS sus citas?\nEsta acción es permanente e irreversible.`)) {
+          if (confirm(`Confirmación final: ¿borrar a ${c.name} (${c.phone}) junto con sus ${c.visits} cita(s)?`)) {
+            action(async () => {
+              if (window.CloudDB && window.CloudDB.isReady()) {
+                await window.CloudDB.deleteClient(c.phone);
+                const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
+                const phone = (c.phone || '').replace(/\D/g, '');
+                localStorage.setItem('nexocita_appointments', JSON.stringify(
+                  raw.filter(x => (x.appointment?.phone || '').replace(/\D/g, '') !== phone)
+                ));
+                await load(); toast('Cliente y sus citas eliminados de la nube.'); return;
+              }
+              if (isOffline) {
+                const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
+                localStorage.setItem('nexocita_appointments', JSON.stringify(
+                  raw.filter(x => x.appointment?.phone !== c.phone)
+                ));
+                await load(); toast('Cliente eliminado.'); return;
+              }
+              await api('admin/client', { id: c.id }, 'DELETE');
+              await load(); toast('Cliente y sus citas eliminados.');
+            });
+          }
+        }
+      }, 'danger-button')
     );
     $('#clients').append(card);
   });

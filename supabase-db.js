@@ -51,6 +51,13 @@ const CloudDB = (() => {
     async deleteAppointment(id) {
       ready(); await result(client.from('appointments').delete().eq('id',id)); return true;
     },
+    async deleteClient(phone) {
+      ready();
+      const clean = (phone||'').replace(/\D/g,'');
+      await result(client.from('appointments').delete().like('phone', `%${clean}%`));
+      await result(client.from('appointments').delete().eq('phone', phone));
+      return true;
+    },
     onAppointmentsChange() {}, // El panel consulta cada 15 segundos, incluso sin Realtime.
     async getServices() { ready(); return result(client.from('services').select('*').order('id')); },
     async saveServices(services) {

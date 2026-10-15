@@ -588,6 +588,14 @@ class Handler(SimpleHTTPRequestHandler):
                 con.execute("DELETE FROM appointments WHERE id=?", (item["id"],))
                 self.send_json({"ok": True})
                 return
+            if path == "/api/admin/client" and method == "DELETE":
+                client_id = body.get("id")
+                if not client_id:
+                    raise Problem("ID de cliente requerido.")
+                con.execute("DELETE FROM appointments WHERE client_id=?", (client_id,))
+                con.execute("DELETE FROM clients WHERE id=?", (client_id,))
+                self.send_json({"ok": True})
+                return
             if path == "/api/admin/client" and method == "PATCH":
                 name = clean_text(body.get("name"), "nombre", 2, 100)
                 email = clean_text(body.get("email", ""), "correo", 0, 150)
