@@ -317,6 +317,9 @@ class Handler(SimpleHTTPRequestHandler):
     def do_PATCH(self):
         self.route_api("PATCH")
 
+    def do_DELETE(self):
+        self.route_api("DELETE")
+
     def route_api(self, method):
         try:
             parsed = urlparse(self.path)
@@ -576,6 +579,13 @@ class Handler(SimpleHTTPRequestHandler):
                     "UPDATE services SET active=? WHERE id=?",
                     (1 if body.get("active") else 0, body.get("id")),
                 )
+                self.send_json({"ok": True})
+                return
+            if path == "/api/admin/appointment" and method == "DELETE":
+                item = get_appointment(con, body.get("id"))
+                if item["status"] != "cancelled":
+                    raise Problem("Solo se pueden eliminar citas ya canceladas.")
+                con.execute("DELETE FROM appointments WHERE id=?", (item["id"],))
                 self.send_json({"ok": True})
                 return
             if path == "/api/admin/client" and method == "PATCH":

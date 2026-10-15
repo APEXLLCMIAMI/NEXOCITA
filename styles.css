@@ -1442,3 +1442,35 @@ dialog > img {
 .waveform i { flex-shrink: 1; }
 .media-types > a { min-width: 0; }
 audio { max-width: 100%; }
+
+/* ── Tarjeta de consulta de cita (cliente) ───────────────────────────────── */
+.lookup-card {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-top: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  animation: lookupFadeIn .3s ease;
+}
+.lookup-info { display: flex; flex-direction: column; gap: 0; }
+.lookup-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-color, #f1f5f9);
+  font-size: .95rem;
+}
+.lookup-info-row:last-child { border-bottom: none; }
+.lookup-label {
+  color: var(--text-muted, #64748b);
+  font-size: .82em;
+  min-width: 90px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  flex-shrink: 0;
+}
+@keyframes lookupFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+

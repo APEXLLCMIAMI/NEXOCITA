@@ -907,18 +907,44 @@ async function lookup(cancel = false) {
 function renderLookupCard(a) {
   const card = document.createElement('div');
   card.className = 'lookup-card';
-  const p = document.createElement('p');
-  p.textContent = `${a.service_name} · ${format(a.date)} · ${a.time} · ${statusNames[a.status] || a.status}`;
-  card.append(p);
+
+  const statusIcon = { confirmed: '✅', completed: '✔️', cancelled: '❌' }[a.status] || '•';
+  const statusColor = { confirmed: '#16a34a', completed: '#2563eb', cancelled: '#dc2626' }[a.status] || '#64748b';
+
+  const info = document.createElement('div');
+  info.className = 'lookup-info';
+  info.innerHTML = `
+    <div class="lookup-info-row"><span class="lookup-label">Servicio</span><strong>${a.service_name || '—'}</strong></div>
+    <div class="lookup-info-row"><span class="lookup-label">Fecha y hora</span><strong>${format(a.date)} · ${a.time}</strong></div>
+    <div class="lookup-info-row"><span class="lookup-label">Duración</span><strong>${a.duration} minutos</strong></div>
+    <div class="lookup-info-row"><span class="lookup-label">Estado</span><strong style="color:${statusColor}">${statusIcon} ${statusNames[a.status] || a.status}</strong></div>
+    <div class="lookup-info-row"><span class="lookup-label">Código</span><strong>#${a.id}</strong></div>
+  `;
+  card.append(info);
+
   if (a.status === 'confirmed') {
     const b = document.createElement('button');
     b.className = 'secondary-button danger-button';
     b.textContent = 'Cancelar esta cita';
+    b.style.marginTop = '12px';
     b.onclick = () => {
-      if (confirm('¿Quieres cancelar esta cita y liberar el horario?')) lookup(true);
+      if (confirm(`¿Cancelar la cita del ${format(a.date)} a las ${a.time}?\nEsta acción libera el horario y no se puede deshacer.`)) {
+        lookup(true);
+      }
     };
     card.append(b);
+  } else if (a.status === 'cancelled') {
+    const note = document.createElement('p');
+    note.style.cssText = 'margin-top:10px;color:#dc2626;font-size:0.9em';
+    note.textContent = 'Esta cita ya fue cancelada. El horario quedó libre.';
+    card.append(note);
+  } else if (a.status === 'completed') {
+    const note = document.createElement('p');
+    note.style.cssText = 'margin-top:10px;color:#2563eb;font-size:0.9em';
+    note.textContent = '¡Gracias por tu visita! Esta cita ya fue completada.';
+    card.append(note);
   }
+
   $('#lookup-result').replaceChildren(card);
 }
 
