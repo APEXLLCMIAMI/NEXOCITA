@@ -508,11 +508,11 @@ class Handler(SimpleHTTPRequestHandler):
             if is_cancel:
                 if item["status"] == "completed":
                     raise Problem("La cita ya fue completada.")
-                con.execute(
-                    "UPDATE appointments SET status='cancelled' WHERE id=? AND status='confirmed'",
-                    (item["id"],),
-                )
-                item = get_appointment(con, item["id"])
+                con.execute("DELETE FROM appointments WHERE id=?", (item["id"],))
+                self.send_json({"ok": True, "deleted": True, "id": item["id"]})
+                return
+            if item["status"] == "cancelled":
+                raise Problem("Esta cita fue eliminada.", 404)
             self.send_json(row_to_public(item))
             return
 
@@ -587,8 +587,6 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             if path == "/api/admin/appointment" and method == "DELETE":
                 item = get_appointment(con, body.get("id"))
-                if item["status"] != "cancelled":
-                    raise Problem("Solo se pueden eliminar citas ya canceladas.")
                 con.execute("DELETE FROM appointments WHERE id=?", (item["id"],))
                 self.send_json({"ok": True})
                 return

@@ -131,31 +131,42 @@ END $$;
 
 CREATE OR REPLACE FUNCTION public.nexocita_lookup(p_id text,p_token text) RETURNS jsonb
 LANGUAGE sql SECURITY DEFINER SET search_path=public,pg_temp AS $$
- SELECT to_jsonb(a)-'token' FROM appointments a WHERE id=p_id AND token=p_token AND length(p_token)>=16;
+ SELECT to_jsonb(a)-'token' FROM appointments a WHERE id=p_id AND token=p_token AND length(p_token)>=16 AND status != 'cancelled';
 $$;
+
+CREATE OR REPLACE FUNCTION public.nexocita_lookup_by_code(p_id text) RETURNS jsonb
+LANGUAGE sql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+ SELECT to_jsonb(a)-'token' FROM appointments a WHERE id=p_id AND status != 'cancelled' LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.nexocita_delete_by_code(p_id text) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ DELETE FROM appointments WHERE id=p_id;
+ RETURN true;
+END $$;
+
 CREATE OR REPLACE FUNCTION public.nexocita_cancel(p_id text,p_token text) RETURNS boolean
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 BEGIN
- UPDATE appointments SET status='cancelled',updated_at=now()
- WHERE id=p_id AND token=p_token AND length(p_token)>=16 AND status='confirmed';
- IF NOT FOUND THEN RAISE EXCEPTION 'No se pudo cancelar: verifica el código, la clave y el estado de la cita'; END IF;
- RETURN true;
-END $$;
-CREATE OR REPLACE FUNCTION public.nexocita_cancel_by_code(p_id text) RETURNS boolean
-LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
-BEGIN
- UPDATE appointments SET status='cancelled',updated_at=now()
- WHERE id=p_id AND status='confirmed';
+ DELETE FROM appointments
+ WHERE id=p_id AND token=p_token AND length(p_token)>=16;
  IF NOT FOUND THEN
-   IF EXISTS (SELECT 1 FROM appointments WHERE id=p_id) THEN
-     RETURN true;
-   END IF;
-   RAISE EXCEPTION 'No se encontró una cita activa con el código %', p_id;
+   UPDATE appointments SET status='cancelled',updated_at=now()
+   WHERE id=p_id AND token=p_token AND length(p_token)>=16;
  END IF;
  RETURN true;
 END $$;
-REVOKE ALL ON FUNCTION public.nexocita_slots(text,text),public.nexocita_book(jsonb,text),public.nexocita_lookup(text,text),public.nexocita_cancel(text,text),public.nexocita_cancel_by_code(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.nexocita_slots(text,text),public.nexocita_book(jsonb,text),public.nexocita_lookup(text,text),public.nexocita_cancel(text,text),public.nexocita_cancel_by_code(text) TO anon,authenticated;
+
+CREATE OR REPLACE FUNCTION public.nexocita_cancel_by_code(p_id text) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ DELETE FROM appointments WHERE id=p_id;
+ RETURN true;
+END $$;
+
+REVOKE ALL ON FUNCTION public.nexocita_slots(text,text),public.nexocita_book(jsonb,text),public.nexocita_lookup(text,text),public.nexocita_lookup_by_code(text),public.nexocita_cancel(text,text),public.nexocita_cancel_by_code(text),public.nexocita_delete_by_code(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.nexocita_slots(text,text),public.nexocita_book(jsonb,text),public.nexocita_lookup(text,text),public.nexocita_lookup_by_code(text),public.nexocita_cancel(text,text),public.nexocita_cancel_by_code(text),public.nexocita_delete_by_code(text) TO anon,authenticated;
 GRANT SELECT ON public.nexocita_admins TO authenticated;
 GRANT SELECT ON public.services,public.settings TO anon,authenticated;
 GRANT SELECT,INSERT,UPDATE,DELETE ON public.appointments,public.services,public.settings TO authenticated;

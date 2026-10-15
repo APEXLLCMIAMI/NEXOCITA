@@ -43,26 +43,60 @@ const CloudDB = (() => {
       Object.assign(appointment,row); return true;
     },
     async lookupAppointment(id,token) { return rpc('nexocita_lookup',{p_id:id,p_token:token}); },
-    async cancelAppointment(id,token) { return rpc('nexocita_cancel',{p_id:id,p_token:token}); },
+    async lookupAppointmentByCode(id) {
+      ready();
+      try {
+        const row = await rpc('nexocita_lookup_by_code', { p_id: id });
+        if (row) return row;
+      } catch {}
+      try {
+        const rows = await result(client.from('appointments').select('*').eq('id', id).limit(1));
+        if (rows && rows.length) {
+          const row = rows[0];
+          delete row.token;
+          return row;
+        }
+      } catch {}
+      return null;
+    },
+    async cancelAppointment(id,token) {
+      try {
+        return await rpc('nexocita_cancel',{p_id:id,p_token:token});
+      } catch (e) {
+        return await db.cancelAppointmentByCode(id);
+      }
+    },
     async cancelAppointmentByCode(id) {
+      ready();
+      try {
+        return await rpc('nexocita_delete_by_code', { p_id: id });
+      } catch {}
       try {
         return await rpc('nexocita_cancel_by_code', { p_id: id });
       } catch (e) {
-        ready();
         const delRes = await client.from('appointments').delete().eq('id', id);
         if (delRes.error) {
           const updRes = await client.from('appointments').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', id);
-          if (updRes.error) throw new Error('No se pudo cancelar la cita: ' + (delRes.error.message || e.message));
+          if (updRes.error) throw new Error('No se pudo eliminar la cita: ' + (delRes.error.message || e.message));
         }
         return true;
       }
     },
-    async updateAppointment(id,updates) {
-      ready(); const rows=await result(client.from('appointments').update({...updates,updated_at:new Date().toISOString()}).eq('id',id).select('id'));
-      if(rows.length!==1) throw Error('No se guardó el cambio. Comprueba tu sesión.'); return true;
-    },
     async deleteAppointment(id) {
-      ready(); await result(client.from('appointments').delete().eq('id',id)); return true;
+      ready();
+      try {
+        await rpc('nexocita_delete_by_code', { p_id: id });
+        return true;
+      } catch {}
+      try {
+        await rpc('nexocita_cancel_by_code', { p_id: id });
+        return true;
+      } catch {}
+      await result(client.from('appointments').delete().eq('id',id));
+      return true;
+    },
+    async deleteAppointmentByCode(id) {
+      return db.deleteAppointment(id);
     },
     async deleteClient(phone) {
       ready();

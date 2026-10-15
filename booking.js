@@ -55,7 +55,20 @@ function saveStoredAppointment(appointment, token) {
   } catch {}
 }
 
+function removeStoredAppointment(id) {
+  if (!id) return;
+  const cleanId = id.trim().toUpperCase();
+  const list = getStoredAppointments().filter(x => !(x.appointment && x.appointment.id?.toUpperCase() === cleanId));
+  try {
+    localStorage.setItem('nexocita_appointments', JSON.stringify(list));
+  } catch {}
+}
+
 function updateStoredAppointment(id, token, newStatus) {
+  if (newStatus === 'cancelled') {
+    removeStoredAppointment(id);
+    return null;
+  }
   const list = getStoredAppointments();
   const item = list.find(x => x.appointment && x.appointment.id === id && x.token === token);
   if (item) {
@@ -876,6 +889,12 @@ async function lookup(cancel = false) {
         found = await window.CloudDB.lookupAppointmentByCode(payload.id);
       }
       if (found) {
+        if (found.status === 'cancelled') {
+          $('#lookup-result').replaceChildren();
+          $('#lookup-error').textContent = 'Esta cita con código #' + payload.id.trim() + ' fue eliminada y ya no está registrada.';
+          removeStoredAppointment(payload.id);
+          return;
+        }
         renderLookupCard(found);
       } else {
         $('#lookup-result').replaceChildren();
@@ -897,6 +916,12 @@ async function lookup(cancel = false) {
   // 3. API backend servidor local
   try {
     const a = await api('my-appointment', payload);
+    if (a && a.status === 'cancelled') {
+      $('#lookup-result').replaceChildren();
+      $('#lookup-error').textContent = 'Esta cita con código #' + payload.id.trim() + ' fue eliminada y ya no está registrada.';
+      removeStoredAppointment(payload.id);
+      return;
+    }
     renderLookupCard(a);
   } catch (e) {
     if (e.message === 'offline') {
@@ -925,7 +950,20 @@ async function cancelAppointmentByCode(id) {
 
   // 1. CloudDB (Supabase)
   if (window.CloudDB && window.CloudDB.isReady()) {
-    if (token) {
+    // Intentar primero eliminación permanente
+    if (typeof window.CloudDB.deleteAppointmentByCode === 'function') {
+      try {
+        await window.CloudDB.deleteAppointmentByCode(cleanId);
+        success = true;
+      } catch (e) { lastErr = e; }
+    }
+    if (!success && typeof window.CloudDB.deleteAppointment === 'function') {
+      try {
+        await window.CloudDB.deleteAppointment(cleanId);
+        success = true;
+      } catch (e) { lastErr = e; }
+    }
+    if (!success && token) {
       try {
         await window.CloudDB.cancelAppointment(cleanId, token);
         success = true;
@@ -937,18 +975,12 @@ async function cancelAppointmentByCode(id) {
         success = true;
       } catch (e) { lastErr = e; }
     }
-    if (!success) {
-      try {
-        await window.CloudDB.deleteAppointment(cleanId);
-        success = true;
-      } catch (e) { lastErr = e; }
-    }
 
     if (!success) {
       throw lastErr || new Error('No se encontró una cita activa con el código #' + cleanId);
     }
 
-    updateStoredAppointment(cleanId, token, 'cancelled');
+    removeStoredAppointment(cleanId);
     slots();
     showCancelSuccess(cleanId);
     return;
@@ -959,8 +991,7 @@ async function cancelAppointmentByCode(id) {
     const list = getStoredAppointments();
     const item = list.find(x => x.appointment && x.appointment.id?.toUpperCase() === cleanId.toUpperCase());
     if (item) {
-      item.appointment.status = 'cancelled';
-      try { localStorage.setItem('nexocita_appointments', JSON.stringify(list)); } catch {}
+      removeStoredAppointment(cleanId);
       slots();
       showCancelSuccess(cleanId);
       return;
@@ -971,6 +1002,7 @@ async function cancelAppointmentByCode(id) {
   // 3. API backend servidor local
   try {
     await api('my-appointment', { id: cleanId, token, cancel: true });
+    removeStoredAppointment(cleanId);
     slots();
     showCancelSuccess(cleanId);
   } catch (e) {
@@ -980,6 +1012,19 @@ async function cancelAppointmentByCode(id) {
 
 function showCancelSuccess(id) {
   $('#lookup-error').textContent = '';
+  const idInput = document.getElementById('lookup-id');
+  if (idInput) idInput.value = '';
+  const tokenInput = document.getElementById('lookup-token');
+  if (tokenInput) tokenInput.value = '';
+
+  const rrCode = document.getElementById('rr-code');
+  if (rrCode && rrCode.textContent.trim().toUpperCase() === id.toUpperCase()) {
+    const successBox = document.getElementById('booking-success');
+    if (successBox) successBox.hidden = true;
+    const formBox = document.getElementById('booking-form');
+    if (formBox) formBox.hidden = false;
+  }
+
   const resultDiv = $('#lookup-result');
   resultDiv.innerHTML = `
     <div class="lookup-card" style="border-left: 4px solid #16a34a; background: var(--surface-raised, #ffffff); padding: 16px; border-radius: 8px;">
@@ -988,7 +1033,7 @@ function showCancelSuccess(id) {
         <strong style="color:#16a34a;font-size:1.05em;">Reservación eliminada exitosamente</strong>
       </div>
       <p style="margin:0;color:var(--ink-secondary,#475569);font-size:0.95em;">
-        Tu cita con código <strong>#${id}</strong> ha sido cancelada y el horario ha quedado libre.
+        Tu cita con código <strong>#${id}</strong> ha sido eliminada por completo de la agenda y el horario quedó libre.
       </p>
     </div>
   `;
@@ -1015,19 +1060,14 @@ function renderLookupCard(a) {
   if (a.status === 'confirmed') {
     const b = document.createElement('button');
     b.className = 'secondary-button danger-button';
-    b.textContent = 'Cancelar esta cita';
+    b.textContent = 'Eliminar reservación';
     b.style.marginTop = '12px';
     b.onclick = () => {
-      if (confirm(`¿Cancelar la cita del ${format(a.date)} a las ${a.time}?\nEsta acción libera el horario y no se puede deshacer.`)) {
+      if (confirm(`¿Eliminar la reservación del ${format(a.date)} a las ${a.time}?\nEsta acción liberará el horario y eliminará tu cita definitivamente.`)) {
         cancelAppointmentByCode(a.id);
       }
     };
     card.append(b);
-  } else if (a.status === 'cancelled') {
-    const note = document.createElement('p');
-    note.style.cssText = 'margin-top:10px;color:#dc2626;font-size:0.9em';
-    note.textContent = 'Esta cita ya fue cancelada. El horario quedó libre.';
-    card.append(note);
   } else if (a.status === 'completed') {
     const note = document.createElement('p');
     note.style.cssText = 'margin-top:10px;color:#2563eb;font-size:0.9em';

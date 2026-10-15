@@ -297,6 +297,38 @@ function renderAppointments() {
     head.append(title, element('span', states[a.status], 'status ' + a.status));
     row.append(head, element('p', `${format(a.date)} · ${a.duration} min · Tel. ${a.phone} · #${a.id}`, 'row-meta'));
     if (a.notes) row.append(element('p', a.notes, 'row-meta'));
+    function deleteAppointmentAdmin(targetApp) {
+      if (confirm(`¿Eliminar la cita #${targetApp.id} de ${targetApp.name} (${format(targetApp.date)} a las ${targetApp.time})?\nEsta acción es permanente y liberará el horario.`)) {
+        action(async () => {
+          let deleted = false;
+          let lastErr = null;
+          if (window.CloudDB && window.CloudDB.isReady()) {
+            try {
+              await window.CloudDB.deleteAppointment(targetApp.id);
+              deleted = true;
+            } catch (e) {
+              lastErr = e;
+            }
+          }
+          if (!deleted && !isOffline) {
+            try {
+              await api('admin/appointment', { id: targetApp.id }, 'DELETE');
+              deleted = true;
+            } catch (e) {
+              lastErr = e;
+            }
+          }
+          const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
+          localStorage.setItem('nexocita_appointments', JSON.stringify(raw.filter(x => !(x.appointment && x.appointment.id === targetApp.id))));
+
+          if (!deleted && isOffline) deleted = true;
+          if (!deleted && lastErr) throw lastErr;
+          await load();
+          toast('Cita eliminada de la agenda.');
+        });
+      }
+    }
+
     const actions = element('div', undefined, 'row-actions');
     if (a.status === 'confirmed') {
       actions.append(
@@ -342,32 +374,12 @@ function renderAppointments() {
               await load(); toast('Cita cancelada. El horario quedó libre.');
             });
           }
-        }, 'danger-button')
+        }, 'danger-button'),
+        button('Eliminar', () => deleteAppointmentAdmin(a), 'danger-button')
       );
-    }
-    if (a.status === 'cancelled') {
+    } else {
       actions.append(
-        button('Eliminar permanentemente', () => {
-          if (confirm(`¿Eliminar definitivamente la cita de ${a.name}?\nEsta acción no se puede deshacer.`)) {
-            if (confirm(`Confirmación final: ¿borrar la cita #${a.id} de ${a.name} (${a.date} ${a.time})?`)) {
-              action(async () => {
-                if (window.CloudDB && window.CloudDB.isReady()) {
-                  await window.CloudDB.deleteAppointment(a.id);
-                  const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
-                  localStorage.setItem('nexocita_appointments', JSON.stringify(raw.filter(x => !(x.appointment && x.appointment.id === a.id))));
-                  await load(); toast('Cita eliminada de la nube.'); return;
-                }
-                if (isOffline) {
-                  const raw = JSON.parse(localStorage.getItem('nexocita_appointments') || '[]');
-                  localStorage.setItem('nexocita_appointments', JSON.stringify(raw.filter(x => !(x.appointment && x.appointment.id === a.id))));
-                  await load(); toast('Cita eliminada.'); return;
-                }
-                await api('admin/appointment', { id: a.id }, 'DELETE');
-                await load(); toast('Cita eliminada permanentemente.');
-              });
-            }
-          }
-        }, 'danger-button')
+        button('Eliminar', () => deleteAppointmentAdmin(a), 'danger-button')
       );
     }
     row.append(actions);
